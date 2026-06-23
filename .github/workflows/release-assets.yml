@@ -1,0 +1,106 @@
+name: Release Assets
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: Release tag to publish with the current workflow definition, for example v1.2.3 or v1.2.3-rc.1
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_ref || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  CHECKOUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.release_ref || github.sha }}
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.release_ref || github.ref_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish GitHub Release
+    if: |
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && startsWith(inputs.release_ref || '', 'v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ env.CHECKOUT_REF }}
+
+      - name: Ensure release tag points to main
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          release_commit="$(git rev-parse HEAD^0)"
+          git fetch origin "${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}" --force
+          git merge-base --is-ancestor "${release_commit}" "refs/remotes/origin/${DEFAULT_BRANCH}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Build package
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          python -m twine check dist/*
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum -- * > SHA256SUMS
+
+      - name: Classify release tag
+        id: release
+        run: |
+          ref_name="${RELEASE_REF}"
+          if [[ "${ref_name}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]]; then
+            prerelease=true
+            stable_tag="${ref_name%-rc.*}"
+            previous_tag="$(git tag --list "${stable_tag}-rc.*" --sort=-v:refname | grep -vx "${ref_name}" | head -n1 || true)"
+            if [ -z "${previous_tag}" ]; then
+              previous_tag="$(git for-each-ref --sort=-v:refname --format='%(refname:short)' refs/tags/v* | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)"
+            fi
+          elif [[ "${ref_name}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            prerelease=false
+            previous_tag="$(git for-each-ref --sort=-v:refname --format='%(refname:short)' refs/tags/v* | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -vx "${ref_name}" | head -n1 || true)"
+          else
+            echo "Unsupported release tag format: ${ref_name}" >&2
+            exit 1
+          fi
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "previous_tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate release notes
+        run: bash scripts/release/generate-release-notes.sh "${{ steps.release.outputs.previous_tag }}" HEAD /tmp/joflux-release-notes.md
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${RELEASE_REF}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_REF}" dist/* --clobber
+            gh release edit "${RELEASE_REF}" \
+              --notes-file /tmp/joflux-release-notes.md \
+              --prerelease=${{ steps.release.outputs.prerelease }}
+          else
+            gh release create "${RELEASE_REF}" dist/* \
+              --title "${RELEASE_REF}" \
+              --notes-file /tmp/joflux-release-notes.md \
+              --prerelease=${{ steps.release.outputs.prerelease }}
+          fi

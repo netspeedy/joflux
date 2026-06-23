@@ -1,0 +1,119 @@
+name: Publish Homebrew Formula
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: Stable release tag to publish, for example v1.0.0
+        required: false
+        type: string
+
+concurrency:
+  group: publish-homebrew-${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_ref || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CHECKOUT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.release_ref || github.sha }}
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.release_ref || github.ref_name }}
+
+jobs:
+  publish:
+    name: Publish Homebrew Formula
+    if: |
+      (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-rc.')) ||
+      (github.event_name == 'workflow_dispatch' && startsWith(inputs.release_ref || '', 'v') && !contains(inputs.release_ref || '', '-rc.'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          ref: ${{ env.CHECKOUT_REF }}
+
+      - name: Ensure release tag points to main
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          release_commit="$(git rev-parse HEAD^0)"
+          git fetch origin "${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}" --force
+          git merge-base --is-ancestor "${release_commit}" "refs/remotes/origin/${DEFAULT_BRANCH}"
+
+      - name: Resolve release wheel checksum
+        id: formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${RELEASE_REF#v}"
+          wheel="joflux-${version}-py3-none-any.whl"
+
+          for attempt in $(seq 1 12); do
+            if checksums="$(gh release download "${RELEASE_REF}" --pattern 'SHA256SUMS' --output - 2>/dev/null)"; then
+              break
+            fi
+            echo "Waiting for release assets (attempt ${attempt}/12)..."
+            sleep 10
+          done
+
+          sha="$(printf '%s\n' "${checksums}" | awk -v asset="${wheel}" '$2 == asset { print $1; found=1 } END { exit found ? 0 : 1 }')"
+          {
+            echo "version=${version}"
+            echo "wheel=${wheel}"
+            echo "sha=${sha}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Update formula and publish to tap
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_AUTOMATION_TOKEN || github.token }}
+        run: |
+          version="${{ steps.formula.outputs.version }}"
+          wheel="${{ steps.formula.outputs.wheel }}"
+          sha="${{ steps.formula.outputs.sha }}"
+          tap_repo="${{ github.repository_owner }}/homebrew-joflux"
+
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "${tmpdir}"' EXIT
+
+          gh repo clone "${tap_repo}" "${tmpdir}/tap" -- --depth=1
+          cd "${tmpdir}/tap"
+          mkdir -p Formula
+
+          cat > Formula/joflux.rb <<EOF
+          class Joflux < Formula
+            desc "Bulk migration workflow for moving GitHub organizations to Forgejo or Codeberg"
+            homepage "https://github.com/netspeedy/joflux"
+            url "https://github.com/netspeedy/joflux/releases/download/v${version}/${wheel}"
+            sha256 "${sha}"
+            license "MIT"
+
+            depends_on "python@3.13"
+
+            def install
+              python = Formula["python@3.13"].opt_bin/"python3.13"
+              wheel = Dir["joflux-*.whl"].first
+              system python, "-m", "pip", "install", "--no-deps", "--prefix=#{libexec}", wheel
+              bin.install_symlink libexec/"bin/joflux"
+            end
+
+            test do
+              assert_match "joflux", shell_output("#{bin}/joflux --version")
+              assert_match "export", shell_output("#{bin}/joflux --help")
+            end
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/joflux.rb
+          git diff --cached --quiet && echo "No formula changes" && exit 0
+          git commit -m "chore: update formula for v${version}"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${tap_repo}.git"
+          git push

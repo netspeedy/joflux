@@ -1,0 +1,106 @@
+name: Build and Validate
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: .github/assets/website/package-lock.json
+
+      - name: Install project
+        run: make install-dev PYTHON=python
+
+      - name: Check formatting
+        run: make fmt-check PYTHON=python
+
+      - name: Run pylint
+        run: make lint PYTHON=python
+
+      - name: Run tests
+        run: make test PYTHON=python
+
+      - name: Build package
+        run: make build PYTHON=python
+
+      - name: Validate package metadata
+        run: python -m twine check dist/*
+
+      - name: Smoke test CLI
+        run: make smoke PYTHON=python
+
+      - name: Validate GitHub Pages website
+        run: |
+          npm ci --prefix .github/assets/website
+          make website-check
+          make website-build
+
+      - name: Validate release scripts
+        run: |
+          bash -n scripts/release/*.sh
+          bash scripts/release/next-release.sh > /tmp/joflux-next-release.txt
+          grep -F 'release_required=' /tmp/joflux-next-release.txt
+          bash scripts/release/generate-release-notes.sh '' HEAD /tmp/joflux-release-notes.md
+          grep -F '## Release Overview' /tmp/joflux-release-notes.md
+          grep -F '## Installation' /tmp/joflux-release-notes.md
+          grep -F '## Published Artifacts' /tmp/joflux-release-notes.md
+
+  yaml:
+    name: YAML
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install yamllint
+        run: python -m pip install yamllint
+
+      - name: Lint YAML
+        run: yamllint .github/workflows .github/dependabot.yml .github/release-drafter.yml .yamllint

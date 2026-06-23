@@ -1,0 +1,83 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+change-template: "- $TITLE ([#$NUMBER]($URL))"
+change-title-escapes: '\<*_&@`'
+exclude-labels:
+  - skip-changelog
+categories:
+  - title: "Breaking Changes"
+    labels:
+      - breaking
+  - title: "Features"
+    labels:
+      - enhancement
+  - title: "Fixes"
+    labels:
+      - bug
+  - title: "Packaging and Delivery"
+    labels:
+      - packaging
+  - title: "CI and Automation"
+    labels:
+      - ci
+  - title: "Dependencies"
+    collapse-after: 3
+    labels:
+      - dependencies
+  - title: "Documentation"
+    labels:
+      - documentation
+  - title: "Maintenance"
+    labels:
+      - maintenance
+version-resolver:
+  major:
+    labels:
+      - breaking
+  minor:
+    labels:
+      - enhancement
+  patch:
+    labels:
+      - bug
+      - dependencies
+      - packaging
+      - release
+  default: patch
+autolabeler:
+  - label: breaking
+    title:
+      - '/^[A-Za-z0-9][A-Za-z0-9-]*(\([^)]+\))?!:/'
+    body:
+      - '/BREAKING CHANGE:/'
+  - label: enhancement
+    title:
+      - '/^feat(\([^)]+\))?:/i'
+  - label: bug
+    title:
+      - '/^(fix|perf|revert)(\([^)]+\))?:/i'
+  - label: documentation
+    files:
+      - "README.md"
+      - "docs/**/*"
+      - "**/*.md"
+  - label: ci
+    files:
+      - ".github/**/*"
+  - label: dependencies
+    title:
+      - '/^(deps|build)(\([^)]+\))?: bump /i'
+  - label: packaging
+    files:
+      - "pyproject.toml"
+      - "scripts/release/**/*"
+template: |
+  ## Included Changes
+
+  $CHANGES
+
+  ## Published Artifacts
+
+  - Python wheel and source distribution
+  - SHA256 checksums
+  - Homebrew formula updates for stable releases
