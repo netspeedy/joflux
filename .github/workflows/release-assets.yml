@@ -96,6 +96,7 @@ jobs:
           if gh release view "${RELEASE_REF}" >/dev/null 2>&1; then
             gh release upload "${RELEASE_REF}" dist/* --clobber
             gh release edit "${RELEASE_REF}" \
+              --draft=false \
               --notes-file /tmp/joflux-release-notes.md \
               --prerelease=${{ steps.release.outputs.prerelease }}
           else
