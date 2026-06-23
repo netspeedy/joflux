@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=69", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "joflux"
+dynamic = ["version"]
+description = "Bulk migration workflow for moving GitHub organizations to Forgejo or Codeberg."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "Simon Oakes" }
+]
+keywords = ["github", "forgejo", "codeberg", "migration", "repositories"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Version Control :: Git",
+  "Topic :: System :: Archiving",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black>=25.1",
+  "build>=1.2",
+  "isort>=6.0",
+  "pylint>=3.3",
+  "pytest>=8.4",
+  "twine>=6.0",
+  "yamllint>=1.37",
+]
+yaml = [
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+joflux = "joflux.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/netspeedy/joflux"
+Issues = "https://github.com/netspeedy/joflux/issues"
+Source = "https://github.com/netspeedy/joflux"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+fallback_version = "0.1.0"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pylint.main]
+py-version = "3.11"
+jobs = 0
+
+[tool.pylint.messages_control]
+disable = [
+  "too-few-public-methods",
+  "too-many-arguments",
+  "too-many-instance-attributes",
+  "too-many-locals",
+  "too-many-positional-arguments",
+  "too-many-statements",
+]
+
+[tool.pylint.format]
+max-line-length = 100

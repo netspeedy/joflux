@@ -1,0 +1,16 @@
+[github]
+org = "my-github-org"
+# token = "ghp_your_github_token"
+# Prefer JOFLUX_GITHUB_TOKEN in the environment for real migrations.
+
+[forgejo]
+url = "https://codeberg.org"
+org = "my-forgejo-org"
+# token = "your_forgejo_or_codeberg_token"
+# Prefer JOFLUX_FORGEJO_TOKEN or JOFLUX_CODEBERG_TOKEN in the environment.
+
+[migration]
+poll_interval = 30
+max_wait_time = 3600
+log_level = "INFO"
+output_dir = "migration_output"
