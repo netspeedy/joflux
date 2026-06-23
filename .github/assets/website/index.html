@@ -1,144 +1,231 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>joflux - GitHub to Forgejo migration workflow</title>
     <meta
       name="description"
-      content="joflux is a CLI workflow for moving GitHub organization repositories to Forgejo-compatible instances such as Codeberg."
+      content="joflux is a CLI workflow for moving a GitHub organization's repositories to Forgejo-compatible instances such as Codeberg."
     />
-    <meta property="og:title" content="joflux" />
-    <meta property="og:description" content="Repeatable GitHub organization migrations to Forgejo and Codeberg." />
+    <meta name="theme-color" content="#0f1218" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="./og-image.png" />
+    <meta property="og:site_name" content="joflux" />
+    <meta property="og:title" content="joflux" />
+    <meta property="og:description" content="A repeatable CLI workflow for migrating a GitHub organization to Forgejo or Codeberg." />
+    <meta property="og:url" content="https://netspeedy.github.io/joflux/" />
+    <meta property="og:image" content="https://netspeedy.github.io/joflux/og-image.png?v=1" />
+    <meta property="og:image:secure_url" content="https://netspeedy.github.io/joflux/og-image.png?v=1" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="joflux migration workflow preview" />
+    <meta property="og:image:alt" content="joflux share card with the wordmark and tagline on a dark terminal background." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="./og-image.png" />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <meta name="twitter:title" content="joflux" />
+    <meta name="twitter:description" content="A repeatable CLI workflow for migrating a GitHub organization to Forgejo or Codeberg." />
+    <meta name="twitter:image" content="https://netspeedy.github.io/joflux/og-image.png?v=1" />
+    <meta name="twitter:image:alt" content="joflux share card with the wordmark and tagline on a dark terminal background." />
+    <title>joflux | GitHub to Forgejo migration workflow</title>
     <script type="module" src="./main.js"></script>
   </head>
   <body>
-    <header class="site-header">
-      <a id="site-home-link" class="brand" href="./" aria-label="joflux home">
-        <img src="./logo.svg" alt="" width="40" height="40" />
-        <span>joflux</span>
+    <header class="masthead wrapper">
+      <a class="brand" href="./" id="site-home-link">
+        <span class="brand-mark"><img src="./favicon.svg" alt="joflux" /></span>
+        <span>
+          <strong>joflux</strong>
+          <small>GitHub to Forgejo migration</small>
+        </span>
       </a>
-      <nav class="top-nav" aria-label="Primary navigation">
-        <a id="nav-github-link" href="https://github.com/netspeedy/joflux">GitHub</a>
-        <a id="nav-releases-link" href="https://github.com/netspeedy/joflux/releases">Releases</a>
-        <a id="nav-homebrew-link" href="https://github.com/netspeedy/homebrew-joflux">Homebrew</a>
+      <nav class="masthead-links" aria-label="Primary navigation">
+        <a href="https://github.com/netspeedy/homebrew-joflux" id="nav-homebrew-link">Homebrew</a>
+        <a href="https://github.com/netspeedy/joflux#readme" id="nav-docs-link">Docs</a>
+        <a href="https://github.com/netspeedy/joflux/releases" id="nav-releases-link">Releases</a>
+        <a href="https://github.com/netspeedy/joflux" id="nav-github-link">GitHub</a>
       </nav>
     </header>
 
     <main>
-      <section class="hero" aria-labelledby="hero-title">
+      <section class="hero wrapper">
         <div class="hero-copy">
           <p class="eyebrow">GitHub to Forgejo migration workflow</p>
-          <h1 id="hero-title">joflux</h1>
-          <p class="hero-text">
-            Export a GitHub organization, start Forgejo or Codeberg imports, monitor progress,
-            verify the target repositories, and archive the originals when the move is complete.
+          <h1>Move a GitHub org to <span class="hero-focus">Forgejo<svg class="hero-focus-underline" viewBox="0 0 200 10" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M2 7 Q 50 1, 100 6 T 198 4"/></svg></span> in one repeatable run.</h1>
+          <p class="hero-lead">
+            joflux exports a GitHub inventory, starts Forgejo or Codeberg imports,
+            monitors progress, verifies the target repositories, and archives the
+            originals &mdash; writing JSON state you can inspect, retry, and keep as an audit trail.
           </p>
-          <div class="hero-actions" aria-label="Primary actions">
-            <a class="button primary" href="#install">Install</a>
-            <a id="hero-docs-link" class="button secondary" href="https://github.com/netspeedy/joflux#readme">Docs</a>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#install">Install</a>
+            <a class="btn btn-secondary" href="https://github.com/netspeedy/joflux#readme" id="hero-docs-link">Documentation</a>
           </div>
         </div>
 
-        <div class="workflow-visual" aria-label="joflux migration workflow">
-          <div class="terminal">
-            <div class="terminal-bar" aria-hidden="true"><span></span><span></span><span></span></div>
-            <ol class="run-list">
-              <li><span>export</span><strong>inventory GitHub repos</strong></li>
-              <li><span>migrate</span><strong>start Forgejo imports</strong></li>
-              <li><span>monitor</span><strong>watch queued jobs</strong></li>
-              <li><span>verify</span><strong>record target metadata</strong></li>
-              <li><span>archive</span><strong>close the GitHub originals</strong></li>
-            </ol>
-          </div>
-        </div>
+        <aside class="terminal-shot" aria-label="joflux migration run preview">
+          <div class="terminal-top"><span></span><span></span><span></span></div>
+          <pre><code><span class="terminal-prompt">$</span> <span class="terminal-command">joflux --config joflux.toml export</span>
+<span class="terminal-label">stage:</span>   <span class="terminal-value">export</span>
+<span class="terminal-key">inventory:</span> <span class="terminal-value">42 repositories written to repos-inventory.json</span>
+
+<span class="terminal-prompt">$</span> <span class="terminal-command">joflux --config joflux.toml migrate</span>
+<span class="terminal-label">stage:</span>   <span class="terminal-value">migrate</span>
+<span class="terminal-key">queued:</span>   <span class="terminal-value">42 imports started on codeberg.org</span>
+
+<span class="terminal-prompt">$</span> <span class="terminal-command">joflux --config joflux.toml monitor &amp;&amp; verify</span>
+<span class="terminal-success">All 42 targets verified against the source metadata</span></code></pre>
+        </aside>
       </section>
 
-      <section class="release-band" aria-label="Release status">
-        <div>
-          <span class="label">Latest release</span>
-          <strong id="release-version">Not published yet</strong>
-        </div>
-        <div>
-          <span class="label">Commit</span>
-          <strong id="release-commit">main</strong>
-        </div>
-        <div>
-          <span class="label">Published</span>
-          <strong id="release-date">Pending first release</strong>
-        </div>
-      </section>
-
-      <section id="install" class="section install-section" aria-labelledby="install-title">
+      <section class="metadata wrapper">
         <div class="section-heading">
-          <p class="eyebrow">Install</p>
-          <h2 id="install-title">Choose the path that fits the run.</h2>
+          <p class="eyebrow">Release details</p>
+          <h2>Latest <span class="accent">stable</span> build information.</h2>
         </div>
-
-        <div class="install-layout">
-          <div class="tabs" role="tablist" aria-label="Install methods">
-            <button class="tab active" id="tab-homebrew" type="button" role="tab" aria-selected="true" aria-controls="panel-homebrew" data-tab="homebrew">Homebrew</button>
-            <button class="tab" id="tab-source" type="button" role="tab" aria-selected="false" aria-controls="panel-source" data-tab="source">Source</button>
-            <button class="tab" id="tab-env" type="button" role="tab" aria-selected="false" aria-controls="panel-env" data-tab="env">Tokens</button>
-          </div>
-
-          <div class="panels">
-            <div class="panel active" id="panel-homebrew" role="tabpanel" aria-labelledby="tab-homebrew">
-              <pre><code id="homebrew-command">brew tap netspeedy/joflux
-brew install joflux</code></pre>
-              <a id="install-homebrew-link" href="https://github.com/netspeedy/homebrew-joflux">Open tap</a>
+        <div class="release-grid">
+          <div class="release-info">
+            <div class="release-stats">
+              <div class="release-stat">
+                <span class="stat-value" id="release-version">Loading...</span>
+                <span class="stat-label">Version</span>
+              </div>
+              <div class="release-stat">
+                <span class="stat-value mono" id="release-commit">---</span>
+                <span class="stat-label">Commit</span>
+              </div>
+              <div class="release-stat">
+                <span class="stat-value" id="release-date">---</span>
+                <span class="stat-label">Published</span>
+              </div>
             </div>
-            <div class="panel" id="panel-source" role="tabpanel" aria-labelledby="tab-source" hidden>
-              <pre><code id="source-command">python3 -m venv .venv
+          </div>
+          <div class="release-highlights">
+            <span class="highlights-title">Release highlights</span>
+            <ul id="release-highlights" class="highlights">
+              <li>Loading release highlights...</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="capabilities wrapper">
+        <div class="section-heading">
+          <p class="eyebrow">What it does</p>
+          <h2>A migration with a <span class="accent">paper trail</span>.</h2>
+        </div>
+        <div class="capability">
+          <span>Inventory</span>
+          <strong>Export before you move</strong>
+          <p>Review the exported GitHub repository list and filter forks or archived repos before any target-side import starts.</p>
+        </div>
+        <div class="capability">
+          <span>Migrate</span>
+          <strong>Forgejo-compatible imports</strong>
+          <p>Start migrations into Codeberg or self-hosted Forgejo, then monitor queued jobs until every import settles.</p>
+        </div>
+        <div class="capability">
+          <span>Verify</span>
+          <strong>JSON state as audit trail</strong>
+          <p>Each step writes readable state files for verification, retries, reporting, and clean handoff between operators.</p>
+        </div>
+      </section>
+
+      <section id="install" class="install wrapper">
+        <div class="section-heading">
+          <p class="eyebrow">Install paths</p>
+          <h2>Get started with your <span class="accent">preferred</span> install method.</h2>
+        </div>
+        <div class="install-tabs">
+          <div class="tab-bar" role="tablist" aria-label="Installation methods">
+            <button class="tab active" type="button" role="tab" data-tab="homebrew" aria-selected="true">Homebrew</button>
+            <button class="tab" type="button" role="tab" data-tab="source" aria-selected="false">Source</button>
+            <button class="tab" type="button" role="tab" data-tab="env" aria-selected="false">Configure</button>
+          </div>
+          <div class="tab-panels">
+            <div class="tab-panel active" id="panel-homebrew" role="tabpanel">
+              <div class="tab-description">
+                <span class="install-badge">Recommended</span>
+                <p>macOS and Linux. Tracks stable releases through the Netspeedy tap.</p>
+              </div>
+              <div class="code-block"><pre><code id="homebrew-command">brew tap netspeedy/joflux
+brew install joflux</code></pre></div>
+            </div>
+            <div class="tab-panel" id="panel-source" role="tabpanel">
+              <div class="tab-description">
+                <p>Install from source into a virtualenv. Works on any host with Python 3.11 or newer.</p>
+              </div>
+              <div class="code-block"><pre><code id="source-command">python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install .</code></pre>
-              <a id="install-release-link" href="https://github.com/netspeedy/joflux/releases">Open releases</a>
+python -m pip install .</code></pre></div>
             </div>
-            <div class="panel" id="panel-env" role="tabpanel" aria-labelledby="tab-env" hidden>
-              <pre><code id="env-command">export JOFLUX_GITHUB_TOKEN="ghp_..."
-export JOFLUX_FORGEJO_TOKEN="forgejo_..."</code></pre>
-              <a id="install-docs-link" href="https://github.com/netspeedy/joflux/blob/main/docs/configuration.md">Configuration docs</a>
+            <div class="tab-panel" id="panel-env" role="tabpanel">
+              <div class="tab-description">
+                <p>Keep tokens out of config files. Export them as environment variables before each run.</p>
+              </div>
+              <div class="code-block"><pre><code id="env-command">export JOFLUX_GITHUB_TOKEN="ghp_..."
+export JOFLUX_FORGEJO_TOKEN="forgejo_..."</code></pre></div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section class="section grid-section" aria-labelledby="why-title">
-        <div class="section-heading">
-          <p class="eyebrow">What it keeps tidy</p>
-          <h2 id="why-title">A migration with a paper trail.</h2>
-        </div>
-        <div class="feature-grid">
-          <article>
-            <h3>Inventory first</h3>
-            <p>Review the exported repository list before any target-side import starts.</p>
-          </article>
-          <article>
-            <h3>Forgejo-compatible</h3>
-            <p>Targets Codeberg and self-hosted Forgejo instances through the migration API.</p>
-          </article>
-          <article>
-            <h3>JSON state</h3>
-            <p>Each step writes readable state files for retries, reporting, and handoff.</p>
-          </article>
+          <div class="install-directory" aria-label="Published install channels">
+            <div class="install-directory-row install-directory-head">
+              <span>Channel</span>
+              <span>Use case</span>
+              <span>Package source</span>
+            </div>
+            <a class="install-directory-row" data-channel="homebrew" href="https://github.com/netspeedy/homebrew-joflux" id="install-homebrew-link" aria-label="Homebrew tap — macOS and Linux workstations">
+              <span class="channel-chip"><span class="channel-dot"></span>Homebrew<span class="channel-tag">Recommended</span></span>
+              <span>macOS and Linux workstations</span>
+              <span class="source-link">Homebrew tap<span class="source-arrow" aria-hidden="true">&#8599;</span></span>
+            </a>
+            <a class="install-directory-row" data-channel="source" href="https://github.com/netspeedy/joflux#readme" id="install-docs-link" aria-label="Source install — Python virtualenv">
+              <span class="channel-chip"><span class="channel-dot"></span>Source</span>
+              <span>Python virtualenv from the repo</span>
+              <span class="source-link">Documentation<span class="source-arrow" aria-hidden="true">&#8599;</span></span>
+            </a>
+            <a class="install-directory-row" data-channel="archives" href="https://github.com/netspeedy/joflux/releases" id="install-release-link" aria-label="GitHub releases — source archives and checksums">
+              <span class="channel-chip"><span class="channel-dot"></span>Archives</span>
+              <span>Source archives and checksums</span>
+              <span class="source-link">GitHub releases<span class="source-arrow" aria-hidden="true">&#8599;</span></span>
+            </a>
+          </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>joflux</span>
-      <a id="footer-release-link" href="https://github.com/netspeedy/joflux/releases">Releases</a>
-      <a id="footer-homebrew-link" href="https://github.com/netspeedy/homebrew-joflux">Homebrew</a>
-      <span id="footer-version">Pending first release</span>
+      <div class="footer-inner wrapper">
+        <div class="footer-top">
+          <div class="footer-about">
+            <div class="footer-logo">
+              <span class="brand-mark"><img src="./favicon.svg" alt="joflux" /></span>
+              <strong>joflux</strong>
+            </div>
+            <p>Repeatable GitHub organization migrations to Forgejo and Codeberg, with JSON state at every step.</p>
+          </div>
+          <div class="footer-columns">
+            <div class="footer-col">
+              <h4>Product</h4>
+              <a href="#install">Install</a>
+              <a href="https://github.com/netspeedy/joflux/releases" id="footer-release-link">Releases</a>
+              <a href="https://github.com/netspeedy/joflux#readme">Documentation</a>
+            </div>
+            <div class="footer-col">
+              <h4>Resources</h4>
+              <a href="https://github.com/netspeedy/joflux/tree/main/docs">Guides</a>
+              <a href="https://github.com/netspeedy/joflux/blob/main/docs/configuration.md">Configuration</a>
+              <a href="https://github.com/netspeedy/joflux/issues">Issues</a>
+            </div>
+            <div class="footer-col">
+              <h4>Install</h4>
+              <a href="https://github.com/netspeedy/homebrew-joflux" id="footer-homebrew-link">Homebrew tap</a>
+              <a href="https://github.com/netspeedy/joflux/releases/latest">Latest release</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; 2026 Simon Oakes &middot; MIT License</span>
+          <span class="footer-build">v<span id="footer-version">---</span> &middot; <span id="footer-commit" class="mono">---</span></span>
+        </div>
+      </div>
     </footer>
   </body>
 </html>

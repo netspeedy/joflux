@@ -1,7 +1,7 @@
 PYTHON ?= python3
 WEBSITE_DIR ?= .github/assets/website
 
-.PHONY: install-dev fmt fmt-check lint test build smoke website-install website-build website-check website-capture clean
+.PHONY: install-dev fmt fmt-check lint test build smoke website-install website-dev website-build website-check website-capture clean
 
 install-dev:
 	$(PYTHON) -m pip install --upgrade pip
@@ -33,6 +33,10 @@ smoke:
 
 website-install:
 	npm --prefix $(WEBSITE_DIR) install
+
+website-dev:
+	test -d $(WEBSITE_DIR)/node_modules || (printf 'missing website dependencies; run `make website-install`\n' >&2 && exit 1)
+	npm --prefix $(WEBSITE_DIR) run dev
 
 website-build:
 	test -d $(WEBSITE_DIR)/node_modules || (printf 'missing website dependencies; run `make website-install`\n' >&2 && exit 1)

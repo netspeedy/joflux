@@ -23,10 +23,12 @@ const requiredDOMIDs = [
   "nav-github-link",
   "nav-releases-link",
   "nav-homebrew-link",
+  "nav-docs-link",
   "hero-docs-link",
   "release-version",
   "release-commit",
   "release-date",
+  "release-highlights",
   "homebrew-command",
   "source-command",
   "env-command",
@@ -36,6 +38,7 @@ const requiredDOMIDs = [
   "footer-release-link",
   "footer-homebrew-link",
   "footer-version",
+  "footer-commit",
 ];
 
 const errors = [];

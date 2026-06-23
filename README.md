@@ -1,8 +1,15 @@
-# joflux
+<p align="center">
+  <img src="assets/joflux-readme-hero.png" width="960" alt="joflux - GitHub org to Forgejo migrations">
+</p>
 
-[![Build and Validate](https://github.com/netspeedy/joflux/actions/workflows/build-and-validate.yml/badge.svg)](https://github.com/netspeedy/joflux/actions/workflows/build-and-validate.yml)
-[![Release](https://img.shields.io/github/v/release/netspeedy/joflux?sort=semver)](https://github.com/netspeedy/joflux/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2ea043)](LICENSE)
+<p align="center">
+  <a href="https://github.com/netspeedy/joflux/actions/workflows/build-and-validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/netspeedy/joflux/build-and-validate.yml?branch=main&style=flat-square&label=validate" alt="Validate"></a>
+  <a href="https://github.com/netspeedy/joflux/releases"><img src="https://img.shields.io/github/v/release/netspeedy/joflux?sort=semver&style=flat-square" alt="Release"></a>
+  <a href="https://github.com/netspeedy/homebrew-joflux"><img src="https://img.shields.io/badge/Homebrew-tap-FBB040?style=flat-square&logo=homebrew&logoColor=black" alt="Homebrew tap"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2ea043?style=flat-square" alt="License"></a>
+  <a href="https://netspeedy.github.io/joflux/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fnetspeedy.github.io%2Fjoflux%2F&style=flat-square&label=docs" alt="Docs"></a>
+</p>
 
 joflux is a small command line workflow for moving repositories from a GitHub
 organization into a Forgejo-compatible instance such as Codeberg. It exports a
@@ -12,6 +19,8 @@ with the result.
 
 It is built for operators who want a repeatable migration run with files they
 can inspect, retry, and keep as an audit trail.
+
+**Docs:** [Website](https://netspeedy.github.io/joflux/) · [Configuration](docs/configuration.md) · [Usage](docs/usage.md) · [Release](docs/release.md) · [Releases](https://github.com/netspeedy/joflux/releases)
 
 ## Install
 

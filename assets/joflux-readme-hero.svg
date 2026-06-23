@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">joflux</title>
+  <desc id="desc">joflux banner with the wordmark, tagline, and five-stage migration flow on a dark terminal background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F1218" />
+      <stop offset="0.5" stop-color="#101A26" />
+      <stop offset="1" stop-color="#17120A" />
+    </linearGradient>
+    <radialGradient id="glow" cx="140" cy="60" r="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18A8FF" stop-opacity="0.32" />
+      <stop offset="1" stop-color="#18A8FF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="flow" x1="120" y1="120" x2="1080" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18A8FF" />
+      <stop offset="0.52" stop-color="#4BD8FF" />
+      <stop offset="1" stop-color="#F5B841" />
+    </linearGradient>
+    <linearGradient id="word" x1="180" y1="96" x2="520" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4BD8FF" />
+      <stop offset="0.6" stop-color="#F4F8FF" />
+      <stop offset="1" stop-color="#F5B841" />
+    </linearGradient>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0H0V44" fill="none" stroke="#AAB5C4" stroke-opacity="0.05" stroke-width="1" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#bg)" />
+  <rect width="1200" height="400" fill="url(#grid)" />
+  <rect width="1200" height="400" fill="url(#glow)" />
+
+  <g transform="translate(76 120)">
+    <rect width="86" height="86" rx="19" fill="#0F1218" stroke="#2D3D52" />
+    <path d="M16 16h26c6 0 11 5 11 11s-5 11-11 11H28c-5 0-9 4-9 9s4 9 9 9h4" fill="none" stroke="url(#flow)" stroke-width="6.5" stroke-linecap="round" />
+    <path d="M16 26h15c6 0 11 5 11 11S37 48 31 48h-3" fill="none" stroke="#F4F8FF" stroke-width="6.5" stroke-linecap="round" opacity="0.9" />
+  </g>
+
+  <text x="186" y="158" fill="url(#word)" font-family="Inter, Arial, sans-serif" font-size="70" font-weight="800">joflux</text>
+  <text x="190" y="200" fill="#AAB5C4" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="500">GitHub org to Forgejo &amp; Codeberg migrations.</text>
+
+  <path d="M150 286 C 280 214, 380 220, 500 286 S 740 348, 900 268" fill="none" stroke="url(#flow)" stroke-width="12" stroke-linecap="round" opacity="0.85" />
+
+  <g font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="22" font-weight="600">
+    <rect x="120" y="300" width="960" height="0" fill="none" />
+    <text x="128" y="338" fill="#F5B841">$ joflux</text>
+    <text x="258" y="338" fill="#4BD8FF">export</text>
+    <text x="382" y="338" fill="#AAB5C4">migrate</text>
+    <text x="514" y="338" fill="#AAB5C4">monitor</text>
+    <text x="654" y="338" fill="#F4F8FF">verify</text>
+    <text x="772" y="338" fill="#AAB5C4">archive</text>
+  </g>
+</svg>
