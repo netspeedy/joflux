@@ -1,56 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">joflux social preview</title>
-  <desc id="desc">joflux share card with the wordmark, tagline, and five-stage migration flow on a dark terminal background.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="og-title og-desc">
+  <title id="og-title">joflux share image</title>
+  <desc id="og-desc">A branded dark terminal-style card for joflux, a repeatable CLI workflow for moving GitHub organizations to Forgejo or Codeberg.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0F1218" />
-      <stop offset="0.52" stop-color="#101A26" />
-      <stop offset="1" stop-color="#17120A" />
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#171d26" />
+      <stop offset="0.55" stop-color="#0f1218" />
+      <stop offset="1" stop-color="#090d13" />
     </linearGradient>
-    <radialGradient id="glow" cx="120" cy="90" r="520" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#18A8FF" stop-opacity="0.34" />
-      <stop offset="1" stop-color="#18A8FF" stop-opacity="0" />
+    <radialGradient id="cyan-glow" cx="75%" cy="26%" r="56%">
+      <stop offset="0" stop-color="#4bd8ff" stop-opacity="0.38" />
+      <stop offset="0.48" stop-color="#4bd8ff" stop-opacity="0.10" />
+      <stop offset="1" stop-color="#4bd8ff" stop-opacity="0" />
     </radialGradient>
-    <linearGradient id="flow" x1="150" y1="150" x2="1030" y2="480" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#18A8FF" />
-      <stop offset="0.52" stop-color="#4BD8FF" />
-      <stop offset="1" stop-color="#F5B841" />
+    <radialGradient id="amber-glow" cx="15%" cy="88%" r="54%">
+      <stop offset="0" stop-color="#f5b841" stop-opacity="0.22" />
+      <stop offset="0.52" stop-color="#f5b841" stop-opacity="0.06" />
+      <stop offset="1" stop-color="#f5b841" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="mark" x1="24" y1="18" x2="82" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18a8ff" />
+      <stop offset="0.58" stop-color="#4bd8ff" />
+      <stop offset="1" stop-color="#f5b841" />
     </linearGradient>
-    <linearGradient id="word" x1="232" y1="96" x2="560" y2="170" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#4BD8FF" />
-      <stop offset="0.6" stop-color="#F4F8FF" />
-      <stop offset="1" stop-color="#F5B841" />
+    <linearGradient id="flow" x1="702" y1="246" x2="1096" y2="444" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4bd8ff" />
+      <stop offset="0.55" stop-color="#18a8ff" />
+      <stop offset="1" stop-color="#f5b841" />
     </linearGradient>
-    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-      <path d="M48 0H0V48" fill="none" stroke="#AAB5C4" stroke-opacity="0.05" stroke-width="1" />
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#f4f8ff" stroke-opacity="0.045" stroke-width="1" />
     </pattern>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#020610" flood-opacity="0.45" />
+    </filter>
   </defs>
 
-  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="#090d13" />
+  <rect width="1200" height="630" fill="url(#card)" />
+  <rect width="1200" height="630" fill="url(#cyan-glow)" />
+  <rect width="1200" height="630" fill="url(#amber-glow)" />
   <rect width="1200" height="630" fill="url(#grid)" />
-  <rect width="1200" height="630" fill="url(#glow)" />
 
-  <rect x="72" y="72" width="1056" height="486" rx="24" fill="#111722" fill-opacity="0.7" stroke="#2D3D52" />
+  <g filter="url(#soft-shadow)">
+    <rect x="56" y="54" width="1088" height="522" rx="38" fill="#0f1218" fill-opacity="0.84" stroke="#2d3d52" stroke-width="2" />
+    <rect x="80" y="78" width="1040" height="60" rx="18" fill="#171d26" fill-opacity="0.78" stroke="#2d3d52" stroke-width="1" />
+    <circle cx="114" cy="108" r="8" fill="#ef4444" />
+    <circle cx="142" cy="108" r="8" fill="#f5b841" />
+    <circle cx="170" cy="108" r="8" fill="#22c55e" />
+    <text x="212" y="115" fill="#aab5c4" font-family="Fira Code, SFMono-Regular, Menlo, Consolas, monospace" font-size="20">netspeedy.github.io/joflux</text>
 
-  <g transform="translate(112 104)">
-    <rect width="92" height="92" rx="20" fill="#0F1218" stroke="#2D3D52" />
-    <path d="M17 17h28c6 0 11 5 11 11s-5 11-11 11H30c-5 0-9 4-9 9s4 9 9 9h4" fill="none" stroke="url(#flow)" stroke-width="7" stroke-linecap="round" />
-    <path d="M17 28h16c6 0 11 5 11 11S39 50 33 50h-3" fill="none" stroke="#F4F8FF" stroke-width="7" stroke-linecap="round" opacity="0.9" />
-  </g>
+    <text x="96" y="206" fill="#4bd8ff" font-family="Fira Code, SFMono-Regular, Menlo, Consolas, monospace" font-size="22" font-weight="600">GITHUB TO FORGEJO MIGRATION</text>
 
-  <text x="232" y="150" fill="url(#word)" font-family="Inter, Arial, sans-serif" font-size="74" font-weight="800">joflux</text>
-  <text x="236" y="205" fill="#AAB5C4" font-family="Inter, Arial, sans-serif" font-size="29" font-weight="500">A repeatable CLI workflow for GitHub to Forgejo migrations.</text>
+    <g transform="translate(96 234)">
+      <rect width="74" height="74" rx="18" fill="#090d13" stroke="#2d3d52" />
+      <path d="M19 19h32c7 0 13 6 13 13s-6 13-13 13H35c-6 0-11 5-11 11s5 11 11 11h5" fill="none" stroke="url(#mark)" stroke-width="7" stroke-linecap="round" />
+      <path d="M19 31h18c7 0 13 6 13 13s-6 13-13 13h-3" fill="none" stroke="#f4f8ff" stroke-width="7" stroke-linecap="round" opacity="0.92" />
+    </g>
 
-  <path d="M150 372 C 300 270, 430 276, 560 372 S 800 474, 1040 332" fill="none" stroke="url(#flow)" stroke-width="14" stroke-linecap="round" opacity="0.9" />
+    <text x="190" y="300" font-family="Inter, Arial, Helvetica, sans-serif" font-size="88" font-weight="800"><tspan fill="#4bd8ff">jo</tspan><tspan fill="#f4f8ff">flux</tspan></text>
 
-  <g font-family="JetBrains Mono, SFMono-Regular, Consolas, monospace" font-size="25" font-weight="600">
-    <rect x="128" y="404" width="944" height="100" rx="16" fill="#07111A" stroke="#2D3D52" />
-    <text x="160" y="448" fill="#F5B841">$ joflux</text>
-    <text x="296" y="448" fill="#4BD8FF">export</text>
-    <text x="430" y="448" fill="#AAB5C4">migrate</text>
-    <text x="572" y="448" fill="#AAB5C4">monitor</text>
-    <text x="722" y="448" fill="#F4F8FF">verify</text>
-    <text x="848" y="448" fill="#AAB5C4">archive</text>
-    <text x="160" y="484" fill="#748194">JSON state at every step &#8212; inspect, retry, keep the audit trail.</text>
+    <text x="96" y="368" fill="#e2e8f0" font-family="Inter, Arial, Helvetica, sans-serif" font-size="31" font-weight="600">Move GitHub orgs to Forgejo</text>
+    <text x="96" y="410" fill="#e2e8f0" font-family="Inter, Arial, Helvetica, sans-serif" font-size="31" font-weight="600">with CLI stages and JSON state.</text>
+
+    <text x="96" y="486" fill="#aab5c4" font-family="Inter, Arial, Helvetica, sans-serif" font-size="24">Export, migrate, monitor, verify, and archive</text>
+    <text x="96" y="520" fill="#aab5c4" font-family="Inter, Arial, Helvetica, sans-serif" font-size="24">with files operators can inspect and retry.</text>
+
+    <g font-family="Fira Code, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" font-weight="600">
+      <rect x="736" y="222" width="132" height="64" rx="14" fill="#07111a" stroke="#2d3d52" />
+      <text x="762" y="250" fill="#f4f8ff">GitHub org</text>
+      <text x="762" y="272" fill="#aab5c4">inventory</text>
+
+      <rect x="710" y="354" width="160" height="70" rx="16" fill="#07111a" stroke="#2d3d52" />
+      <text x="736" y="386" fill="#f5b841">$ joflux</text>
+      <text x="736" y="408" fill="#4bd8ff">migrate</text>
+
+      <rect x="946" y="204" width="148" height="64" rx="14" fill="#07111a" stroke="#2d3d52" />
+      <text x="974" y="232" fill="#f4f8ff">Forgejo</text>
+      <text x="974" y="254" fill="#aab5c4">target org</text>
+
+      <rect x="946" y="410" width="148" height="64" rx="14" fill="#07111a" stroke="#2d3d52" />
+      <text x="974" y="438" fill="#f4f8ff">Codeberg</text>
+      <text x="974" y="460" fill="#aab5c4">target org</text>
+    </g>
+
+    <g fill="none" stroke="url(#flow)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      <path d="M868 254 C900 254 900 236 946 236" />
+      <path d="M868 388 C904 388 904 442 946 442" />
+      <path d="M802 286 C802 316 802 326 802 354" stroke-dasharray="5 8" />
+      <path d="M870 388 C906 388 906 236 946 236" opacity="0.42" />
+    </g>
+    <g fill="#f5b841">
+      <circle cx="868" cy="254" r="6" />
+      <circle cx="946" cy="236" r="6" />
+      <circle cx="868" cy="388" r="6" />
+      <circle cx="946" cy="442" r="6" />
+    </g>
+
+    <g font-family="Fira Code, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">
+      <rect x="708" y="502" width="82" height="30" rx="10" fill="#07111a" stroke="#2d3d52" />
+      <rect x="800" y="502" width="86" height="30" rx="10" fill="#07111a" stroke="#2d3d52" />
+      <rect x="896" y="502" width="86" height="30" rx="10" fill="#07111a" stroke="#2d3d52" />
+      <rect x="992" y="502" width="82" height="30" rx="10" fill="#07111a" stroke="#2d3d52" />
+      <text x="722" y="522" fill="#4bd8ff">export</text>
+      <text x="814" y="522" fill="#aab5c4">migrate</text>
+      <text x="910" y="522" fill="#aab5c4">monitor</text>
+      <text x="1008" y="522" fill="#f4f8ff">verify</text>
+    </g>
   </g>
 </svg>
