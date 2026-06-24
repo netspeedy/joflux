@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/joflux-readme-hero.png" width="960" alt="joflux - GitHub org to Forgejo migrations">
+  <img src="assets/joflux-readme-hero.svg" width="960" alt="joflux - GitHub org to Forgejo migrations">
 </p>
 
 <p align="center">
