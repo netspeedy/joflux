@@ -47,10 +47,7 @@ def test_monitor_fails_when_repositories_remain_pending(tmp_path, monkeypatch) -
             """Return a still-running migration status."""
             return "in_progress"
 
-    times = iter([0.0, 2.0])
     monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
-    monkeypatch.setattr(cli.time, "time", lambda: next(times))
-    monkeypatch.setattr(cli.time, "sleep", lambda _interval: None)
 
     config = AppConfig(
         github_org="source",
@@ -58,7 +55,7 @@ def test_monitor_fails_when_repositories_remain_pending(tmp_path, monkeypatch) -
         forgejo_url="https://forge.example",
         forgejo_org="target",
         forgejo_token="forgejo-token",
-        max_wait_time=1,
+        max_wait_time=0,
         output_dir=str(tmp_path),
     )
 
