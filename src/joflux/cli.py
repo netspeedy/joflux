@@ -168,7 +168,8 @@ def cmd_monitor(args: argparse.Namespace, config: AppConfig) -> int:
     """Monitor repositories whose migration has been started."""
     state = MigrationState(config.output_dir)
     migration_events = state.load_json(state.migration_log)
-    pending = [event["repo"] for event in migration_events if event.get("status") == "initiated"]
+    status_events = state.load_json(state.status_file) if state.status_file.exists() else []
+    pending = _pending_migration_repos(migration_events, status_events)
     if not pending:
         LOGGER.warning("No initiated migrations found")
         return 0
@@ -207,7 +208,7 @@ def cmd_monitor(args: argparse.Namespace, config: AppConfig) -> int:
     LOGGER.info(
         "Monitor complete: %d completed, %d failed, %d pending", completed, failed, len(pending)
     )
-    return 0 if failed == 0 else 1
+    return 0 if failed == 0 and not pending else 1
 
 
 def cmd_verify(_args: argparse.Namespace, config: AppConfig) -> int:
@@ -277,3 +278,44 @@ def _verification_details(metadata: dict[str, Any]) -> str:
         f"labels:{metadata.get('labels', 0)} "
         f"releases:{metadata.get('releases', 0)}"
     )
+
+
+def _pending_migration_repos(
+    migration_events: list[dict[str, Any]], status_events: list[dict[str, Any]]
+) -> list[str]:
+    latest_migrations: dict[str, tuple[str, str]] = {}
+    for event in migration_events:
+        repo_name = event.get("repo")
+        status = event.get("status")
+        if not isinstance(repo_name, str) or not isinstance(status, str):
+            continue
+        latest_migrations[repo_name] = (status, _event_timestamp(event))
+
+    latest_statuses: dict[str, tuple[str, str]] = {}
+    for event in status_events:
+        repo_name = event.get("repo")
+        status = event.get("status")
+        if not isinstance(repo_name, str) or not isinstance(status, str):
+            continue
+        latest_statuses[repo_name] = (status, _event_timestamp(event))
+
+    pending: list[str] = []
+    for repo_name, (migration_status, migration_time) in latest_migrations.items():
+        if migration_status != "initiated":
+            continue
+
+        status = latest_statuses.get(repo_name)
+        if status is not None:
+            status_name, status_time = status
+            if status_name in {"completed", "error"} and (
+                not migration_time or not status_time or status_time >= migration_time
+            ):
+                continue
+
+        pending.append(repo_name)
+    return pending
+
+
+def _event_timestamp(event: dict[str, Any]) -> str:
+    timestamp = event.get("timestamp") or event.get("checked_at")
+    return timestamp if isinstance(timestamp, str) else ""

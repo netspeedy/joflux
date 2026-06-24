@@ -61,8 +61,30 @@ jobs:
         if: steps.automation.outputs.enabled == 'true'
         run: git fetch --tags --force
 
-      - name: Skip if release tag already exists on HEAD
+      - name: Check release head is current
         if: steps.automation.outputs.enabled == 'true'
+        id: current
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "current=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          git fetch origin "${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}" --force
+          current_sha="$(git rev-parse "refs/remotes/origin/${DEFAULT_BRANCH}")"
+          if [ "${RELEASE_SHA}" = "${current_sha}" ]; then
+            echo "current=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "current=false" >> "${GITHUB_OUTPUT}"
+          printf "Skipped release because \`%s\` is no longer the current \`%s\` head. Current head is \`%s\`.\n" \
+            "${RELEASE_SHA}" "${DEFAULT_BRANCH}" "${current_sha}" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Skip if release tag already exists on HEAD
+        if: steps.automation.outputs.enabled == 'true' && steps.current.outputs.current == 'true'
         id: existing
         run: |
           existing_tag="$(git tag --points-at "${RELEASE_SHA}" --list 'v*' | head -n1 || true)"
@@ -75,7 +97,7 @@ jobs:
 
       - name: Compute next release tag
         id: release
-        if: steps.existing.outputs.release_required == 'true'
+        if: steps.current.outputs.current == 'true' && steps.existing.outputs.release_required == 'true'
         run: |
           while IFS='=' read -r key value; do
             echo "${key}=${value}" >> "${GITHUB_OUTPUT}"
@@ -83,7 +105,7 @@ jobs:
 
       - name: Compute next prerelease tag
         id: candidate
-        if: steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
+        if: steps.current.outputs.current == 'true' && steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
         run: |
           stable_tag="${{ steps.release.outputs.next_tag }}"
           latest_candidate="$(git tag --list "${stable_tag}-rc.*" --sort=-v:refname | head -n1 || true)"
@@ -96,7 +118,7 @@ jobs:
           echo "candidate_tag=${stable_tag}-rc.${rc_number}" >> "${GITHUB_OUTPUT}"
 
       - name: Create and push prerelease tag
-        if: steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
+        if: steps.current.outputs.current == 'true' && steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
         env:
           RELEASE_AUTOMATION_TOKEN: ${{ secrets.RELEASE_AUTOMATION_TOKEN }}
         run: |
@@ -107,7 +129,7 @@ jobs:
             "refs/tags/${{ steps.candidate.outputs.candidate_tag }}"
 
       - name: Wait for prerelease publish workflow
-        if: steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
+        if: steps.current.outputs.current == 'true' && steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -117,7 +139,7 @@ jobs:
             release-assets.yml
 
       - name: Create and push stable tag
-        if: steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
+        if: steps.current.outputs.current == 'true' && steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
         env:
           RELEASE_AUTOMATION_TOKEN: ${{ secrets.RELEASE_AUTOMATION_TOKEN }}
         run: |
@@ -128,7 +150,7 @@ jobs:
             "refs/tags/${{ steps.candidate.outputs.stable_tag }}"
 
       - name: Wait for stable publish workflows
-        if: steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
+        if: steps.current.outputs.current == 'true' && steps.existing.outputs.release_required == 'true' && steps.release.outputs.release_required == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -141,6 +163,9 @@ jobs:
       - name: Write workflow summary
         if: steps.automation.outputs.enabled == 'true'
         run: |
+          if [ "${{ steps.current.outputs.current }}" = "false" ]; then
+            exit 0
+          fi
           if [ "${{ steps.existing.outputs.release_required }}" = "false" ]; then
             printf "Release tag already present on HEAD: \`%s\`\n" "${{ steps.existing.outputs.existing_tag }}" >> "${GITHUB_STEP_SUMMARY}"
             exit 0

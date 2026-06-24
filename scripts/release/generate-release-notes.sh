@@ -36,7 +36,7 @@ repo_url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-netspeed
 tmpfile="$(mktemp)"
 trap 'rm -f "${tmpfile}"' EXIT
 
-git log --reverse --format='- %s (`%h`)' "${log_range}" > "${tmpfile}" || true
+git log --reverse --format="- %s (\`%h\`)" "${log_range}" > "${tmpfile}" || true
 
 if [ ! -s "${tmpfile}" ]; then
   printf -- '- Maintenance release.\n' > "${tmpfile}"

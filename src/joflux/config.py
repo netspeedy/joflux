@@ -56,6 +56,25 @@ class AppConfig:
             env_names = ", ".join(env)
             raise ConfigError(f"missing required config key: {keys[0]} or env var: {env_names}")
 
+        def positive_int(default: int, *keys: str) -> int:
+            value = optional(default, *keys)
+            try:
+                parsed = int(value)
+            except (TypeError, ValueError) as exc:
+                raise ConfigError(f"config key must be a positive integer: {keys[0]}") from exc
+            if parsed <= 0:
+                raise ConfigError(f"config key must be a positive integer: {keys[0]}")
+            return parsed
+
+        def log_level() -> str:
+            level = str(optional("INFO", "log_level", "migration.log_level")).upper()
+            valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+            if level not in valid_levels:
+                raise ConfigError(
+                    "config key log_level must be one of: " + ", ".join(sorted(valid_levels))
+                )
+            return level
+
         return cls(
             github_org=required("github_org", "source_org", "github.org"),
             github_token=secret(
@@ -76,9 +95,9 @@ class AppConfig:
             github_api_url=str(
                 optional("https://api.github.com", "github_api_url", "github.api_url")
             ),
-            poll_interval=int(optional(30, "poll_interval", "migration.poll_interval")),
-            max_wait_time=int(optional(3600, "max_wait_time", "migration.max_wait_time")),
-            log_level=str(optional("INFO", "log_level", "migration.log_level")).upper(),
+            poll_interval=positive_int(30, "poll_interval", "migration.poll_interval"),
+            max_wait_time=positive_int(3600, "max_wait_time", "migration.max_wait_time"),
+            log_level=log_level(),
             output_dir=str(optional("migration_output", "output_dir", "migration.output_dir")),
         )
 

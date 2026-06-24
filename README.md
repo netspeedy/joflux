@@ -24,7 +24,7 @@ can inspect, retry, and keep as an audit trail.
 
 ## Install
 
-With Homebrew, after the first stable release is published:
+With Homebrew:
 
 ```bash
 brew tap netspeedy/joflux

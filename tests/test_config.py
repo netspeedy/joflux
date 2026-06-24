@@ -110,3 +110,51 @@ def test_missing_required_key_raises(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError, match="github_token"):
         load_config(config_path)
+
+
+def test_poll_interval_must_be_positive(tmp_path: Path) -> None:
+    """Runtime polling settings reject values that would break monitor loops."""
+    config_path = tmp_path / "bad-poll.toml"
+    config_path.write_text(
+        """
+[github]
+org = "source"
+token = "ghp_token"
+
+[forgejo]
+url = "https://forge.example"
+org = "target"
+token = "forgejo_token"
+
+[migration]
+poll_interval = 0
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="poll_interval"):
+        load_config(config_path)
+
+
+def test_log_level_must_be_known(tmp_path: Path) -> None:
+    """Bad log levels fail during config loading."""
+    config_path = tmp_path / "bad-log-level.toml"
+    config_path.write_text(
+        """
+[github]
+org = "source"
+token = "ghp_token"
+
+[forgejo]
+url = "https://forge.example"
+org = "target"
+token = "forgejo_token"
+
+[migration]
+log_level = "VERBOSE"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="log_level"):
+        load_config(config_path)

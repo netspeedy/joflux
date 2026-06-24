@@ -17,4 +17,5 @@ next version:
 - `fix:`, `deps:`, `build:`, `packaging:`, and `release:` create a patch release.
 - `!` or `BREAKING CHANGE:` creates a major release.
 
-The first stable release should publish `v0.1.0` from a `feat:` commit.
+The release workflow publishes an `-rc` tag first, waits for release assets to
+build, and then promotes the same commit to a stable tag.

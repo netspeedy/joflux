@@ -98,13 +98,29 @@ class ForgejoClient:
         except APIError as exc:
             return {"name": repo_name, "status": "error", "error": str(exc)}
 
+        counts: dict[str, int] = {}
+        for label, path in {
+            "issues": f"/api/v1/repos/{org_name}/{repo_name}/issues",
+            "pulls": f"/api/v1/repos/{org_name}/{repo_name}/pulls",
+            "labels": f"/api/v1/repos/{org_name}/{repo_name}/labels",
+            "releases": f"/api/v1/repos/{org_name}/{repo_name}/releases",
+        }.items():
+            try:
+                counts[label] = self._count_items(path)
+            except APIError as exc:
+                return {
+                    "name": repo_name,
+                    "status": "error",
+                    "error": f"failed to count {label}: {exc}",
+                }
+
         return {
             "name": repo_name,
             "size": repo_data.get("size", 0) if isinstance(repo_data, dict) else 0,
-            "issues": self._count_items(f"/api/v1/repos/{org_name}/{repo_name}/issues"),
-            "pulls": self._count_items(f"/api/v1/repos/{org_name}/{repo_name}/pulls"),
-            "labels": self._count_items(f"/api/v1/repos/{org_name}/{repo_name}/labels"),
-            "releases": self._count_items(f"/api/v1/repos/{org_name}/{repo_name}/releases"),
+            "issues": counts["issues"],
+            "pulls": counts["pulls"],
+            "labels": counts["labels"],
+            "releases": counts["releases"],
             "has_wiki": repo_data.get("has_wiki", False) if isinstance(repo_data, dict) else False,
             "status": "verified",
         }
@@ -114,15 +130,12 @@ class ForgejoClient:
         page = 1
         per_page = 50
         while True:
-            try:
-                data = request_json(
-                    "GET",
-                    f"{self.url}{path}",
-                    self.headers,
-                    params={"page": page, "limit": per_page, "state": "all"},
-                )
-            except APIError:
-                return total
+            data = request_json(
+                "GET",
+                f"{self.url}{path}",
+                self.headers,
+                params={"page": page, "limit": per_page, "state": "all"},
+            )
             if not isinstance(data, list) or not data:
                 return total
             total += len(data)
