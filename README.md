@@ -1,59 +1,116 @@
 <p align="center">
-  <img src="assets/joflux-readme-hero.svg" width="960" alt="joflux - GitHub org to Forgejo migrations">
+  <img src="assets/joflux-readme-hero.svg" width="960" alt="joflux - no lost repos, every stage on record. Five stages from a GitHub org to Forgejo or Codeberg, each one writing JSON you keep.">
 </p>
 
 <p align="center">
   <a href="https://github.com/netspeedy/joflux/actions/workflows/build-and-validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/netspeedy/joflux/build-and-validate.yml?branch=main&style=flat-square&label=validate" alt="Validate"></a>
   <a href="https://github.com/netspeedy/joflux/releases"><img src="https://img.shields.io/github/v/release/netspeedy/joflux?sort=semver&style=flat-square" alt="Release"></a>
   <a href="https://github.com/netspeedy/homebrew-joflux"><img src="https://img.shields.io/badge/Homebrew-tap-FBB040?style=flat-square&logo=homebrew&logoColor=black" alt="Homebrew tap"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2ea043?style=flat-square" alt="License"></a>
-  <a href="https://netspeedy.github.io/joflux/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fnetspeedy.github.io%2Fjoflux%2F&style=flat-square&label=docs" alt="Docs"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-2EA043?style=flat-square" alt="License"></a>
 </p>
 
-joflux is a small command line workflow for moving repositories from a GitHub
-organization into a Forgejo-compatible instance such as Codeberg. It exports a
-GitHub inventory, starts Forgejo migrations, monitors progress, verifies the
-target repositories, and can archive the GitHub originals once you are happy
-with the result.
+---
 
-It is built for operators who want a repeatable migration run with files they
-can inspect, retry, and keep as an audit trail.
+joflux moves the repositories of a GitHub organization into a Forgejo-compatible
+instance such as Codeberg. It exports an inventory of the organization, starts a
+Forgejo migration for every repository in it, waits for them to finish, checks
+what arrived, and archives the GitHub originals once you're happy with the result.
 
-**Docs:** [Website](https://netspeedy.github.io/joflux/) · [Configuration](docs/configuration.md) · [Usage](docs/usage.md) · [Release](docs/release.md) · [Releases](https://github.com/netspeedy/joflux/releases)
+Each of those steps is its own command, and each one writes its results as JSON in
+`migration_output/`. You can read exactly what happened, re-run a stage, and keep
+the files as the record of the move. joflux is a reworked public version of an
+older internal GitHub-to-Codeberg helper, and the default install needs nothing
+beyond the Python 3.11+ standard library.
+
+**Quick links:** [Install](#install) · [Try it](#try-it) · [Configuration](docs/configuration.md) · [Usage](docs/usage.md) · [Releases](https://github.com/netspeedy/joflux/releases) · [Website](https://netspeedy.github.io/joflux/)
 
 ## Install
 
-With Homebrew:
+On macOS or Linux, Homebrew is the easiest route:
 
 ```bash
 brew tap netspeedy/joflux
 brew install joflux
 ```
 
-From source:
+> On recent Homebrew, new third-party taps require explicit trust. If installation is refused, run `brew trust netspeedy/joflux` once, then `brew install joflux`.
+
+Or install it from a checkout with pip:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
+. .venv/bin/activate
 python -m pip install .
 ```
 
-For development:
+YAML configs need the optional extra, `python -m pip install '.[yaml]'`. TOML
+needs nothing extra.
 
-```bash
-make install-dev
-make test
-```
+## Try it
 
-## Configure
-
-Copy the example config and add tokens with the required access:
+Copy the example config, set your GitHub and Forgejo organizations in it, put both
+tokens in the environment, and export the inventory. `export` only reads from
+GitHub, so it's the safe first step:
 
 ```bash
 cp joflux.toml.example joflux.toml
+export JOFLUX_GITHUB_TOKEN="ghp_your_github_token"
+export JOFLUX_FORGEJO_TOKEN="your_forgejo_token"
+joflux --config joflux.toml export
 ```
+
+It lists the organization and saves the inventory:
+
+```text
+02:39:52 - INFO - Fetching repositories from GitHub org: my-github-org
+02:39:52 - INFO - Found 14 repositories
+02:39:52 - INFO - Inventory saved: migration_output/repos-inventory.json
+02:39:52 - INFO - Exported 14 repositories (3 private, 1 forks, 1 archived)
+```
+
+Read `migration_output/repos-inventory.json` before going any further. If forks or
+already archived repositories shouldn't move, export again with `--exclude-forks`
+or `--exclude-archived`; the inventory is the list every later stage works from.
+
+## The five stages
+
+Run the stages in order, all with the same config:
+
+```bash
+joflux --config joflux.toml export
+joflux --config joflux.toml migrate
+joflux --config joflux.toml monitor
+joflux --config joflux.toml verify
+joflux --config joflux.toml archive
+```
+
+| Stage | What it does | Writes |
+| --- | --- | --- |
+| `export` | Lists every repository in the GitHub organization | `repos-inventory.json` |
+| `migrate` | Resolves the target organization and starts one Forgejo migration per repository | `migration-log.json` |
+| `monitor` | Polls the target until each started migration completes, fails or runs out of time | `migration-status.json` |
+| `verify` | Checks each target repository and records its size and issue, pull request, label and release counts | `verification-report.json` |
+| `archive` | Archives the GitHub originals | `archive-log.json` |
+
+`migrate` copies each repository as a normal repository rather than a mirror and
+keeps it private if it was private on GitHub. `monitor` only checks repositories
+whose migration was started and hasn't finished yet, so you can stop it and run it
+again; `--interval` overrides the poll interval for that run. `verify` exits with
+code 1 and names the missing repositories if any of them aren't on the target.
+
+`archive` is deliberately separate from the rest. It asks you to type `yes` before
+it changes anything, unless you pass `--yes`, and it archives the originals rather
+than deleting them.
+
+Every command exits 0 on success, 1 when a stage partly failed or an API call
+errored, and 2 for a config problem or a missing state file, so a script can stop
+at the first stage that didn't go cleanly.
+
+## Configuration
+
+joflux reads `joflux.toml` by default; `--config` points it elsewhere and
+`--log-level` overrides the configured log level for one run.
 
 ```toml
 [github]
@@ -68,90 +125,55 @@ org = "my-forgejo-org"
 [migration]
 poll_interval = 30
 max_wait_time = 3600
+log_level = "INFO"
 output_dir = "migration_output"
 ```
 
-The GitHub token needs permission to list and clone the source organization
-repositories. If you plan to run `archive`, it also needs permission to update
-repository settings. The Forgejo or Codeberg token needs permission to create
-repositories in the target organization.
+The GitHub token needs to list and clone the organization's repositories,
+including any private ones you're moving, and to update repository settings if
+you'll run `archive`. The Forgejo or Codeberg token needs to create repositories in
+the target organization, which must exist before you run `migrate`. Keep both in
+the environment as `JOFLUX_GITHUB_TOKEN` and `JOFLUX_FORGEJO_TOKEN` rather than in
+the file; for Codeberg, `JOFLUX_CODEBERG_TOKEN` works too. A token in the config
+file takes precedence when both are set. For GitHub Enterprise Server, set
+`github.api_url` to your server's API address.
 
-Prefer environment variables for tokens so they are not written to disk:
+Flat keys from the older tool, such as `github_org`, `codeberg_url`,
+`codeberg_org` and `codeberg_token`, still work, so an earlier config can be moved
+across gradually. [docs/configuration.md](docs/configuration.md) lists every key.
 
-```bash
-export JOFLUX_GITHUB_TOKEN="ghp_your_github_token"
-export JOFLUX_FORGEJO_TOKEN="your_forgejo_token"
-```
+## Before you migrate
 
-For Codeberg targets, `JOFLUX_CODEBERG_TOKEN` is accepted as an alias for
-`JOFLUX_FORGEJO_TOKEN`.
+Forgejo instances differ in what they allow. Some restrict private imports,
+metadata import, how many repositories an organization can hold, or how many
+migrations run at once, so check the target's limits before starting on a large
+organization. Keep `migration_output/` once the run is over: it's the audit trail,
+and it's what `monitor`, `verify` and `archive` read when you re-run them.
 
-Old flat keys such as `github_org`, `codeberg_url`, `codeberg_org`, and
-`codeberg_token` are still accepted, so earlier configs can be migrated
-gradually. TOML is the default because it keeps joflux dependency-free; YAML is
-accepted when the optional `joflux[yaml]` extra is installed.
+## Development
 
-## Run a migration
-
-Export the GitHub repository inventory:
-
-```bash
-joflux --config joflux.toml export
-```
-
-Start migrations into the target Forgejo organization:
+Install the development tools and run the checks:
 
 ```bash
-joflux --config joflux.toml migrate
+make install-dev
+make fmt-check
+make lint
+make test
+make smoke
 ```
 
-Monitor progress:
+`make fmt` formats with black and isort, and `make build` builds the package. The
+GitHub Pages site lives in `website/`; `make website-install`, `make website-check`
+and `make website-build` cover it. [docs/release.md](docs/release.md) describes the
+release flow.
 
-```bash
-joflux --config joflux.toml monitor
-```
-
-Verify the migrated repositories:
-
-```bash
-joflux --config joflux.toml verify
-```
-
-Archive the GitHub originals after you have reviewed the target repositories:
-
-```bash
-joflux --config joflux.toml archive --yes
-```
-
-Each command writes JSON state into `migration_output/` by default:
-
-- `repos-inventory.json` stores the exported GitHub repositories.
-- `migration-log.json` records migration start attempts.
-- `migration-status.json` records monitor results.
-- `verification-report.json` records verification summaries.
-- `archive-log.json` records archive attempts.
-
-## Safety notes
-
-Run `export`, review `migration_output/repos-inventory.json`, and only then run
-`migrate`. Use `--exclude-forks` or `--exclude-archived` during export if those
-repositories should not move.
-
-The `archive` command is intentionally separate from migration and asks for
-confirmation unless `--yes` is supplied. It archives GitHub repositories; it does
-not delete them.
-
-Forgejo migration support depends on the target instance configuration. Some
-instances may restrict private imports, metadata import, repository counts, or
-background migration concurrency.
-
-## Project status
-
-joflux is a reworked public version of an older internal GitHub-to-Codeberg
-migration helper. The current version keeps the original five-stage workflow but
-packages it as a normal Python CLI with tests, release automation, and Homebrew
-tap publishing.
+The banner at the top of this page is generated. Edit the copy, layout or timing in
+`scripts/readme/build_readme_hero.py` and run `make readme-hero` to rebuild
+`assets/joflux-readme-hero.svg`. It downloads the font subsets from Google Fonts, so
+it needs network access. If you change the headline's words, measure them again with
+`scripts/readme/measure_headline.py`, which explains its own dependencies.
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Copyright © 2026 [Simon Oakes](https://github.com/soakes). Released under the
+[MIT License](LICENSE).
