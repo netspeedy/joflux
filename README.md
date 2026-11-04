@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/joflux-readme-hero.svg" width="960" alt="joflux - no lost repos, every stage on record. Five stages from a GitHub org to Forgejo or Codeberg, each one writing JSON you keep.">
+  <img src="assets/joflux-readme-hero.svg" width="960" alt="joflux - GitHub org to Forgejo migrations">
 </p>
 
 <p align="center">
@@ -166,12 +166,6 @@ make smoke
 GitHub Pages site lives in `website/`; `make website-install`, `make website-check`
 and `make website-build` cover it. [docs/release.md](docs/release.md) describes the
 release flow.
-
-The banner at the top of this page is generated. Edit the copy, layout or timing in
-`scripts/readme/build_readme_hero.py` and run `make readme-hero` to rebuild
-`assets/joflux-readme-hero.svg`. It downloads the font subsets from Google Fonts, so
-it needs network access. If you change the headline's words, measure them again with
-`scripts/readme/measure_headline.py`, which explains its own dependencies.
 
 ## License
 
