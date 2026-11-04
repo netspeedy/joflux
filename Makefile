@@ -51,7 +51,7 @@ website-capture:
 	npm --prefix $(WEBSITE_DIR) run capture
 
 readme-hero:
-	$(PYTHON) scripts/readme/build_readme_hero.py
+	uv run scripts/readme/build_readme_hero.py
 
 clean:
 	rm -rf build dist *.egg-info src/*.egg-info .pytest_cache .coverage $(WEBSITE_DIR)/dist $(WEBSITE_DIR)/.captures

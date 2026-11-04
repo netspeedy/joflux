@@ -18,6 +18,3 @@ website/.captures/
 website/dist/
 website/node_modules/
 .DS_Store
-
-# Cached by scripts/readme/measure_headline.py
-scripts/readme/inter-latin.ttf
