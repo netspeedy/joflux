@@ -1,5 +1,5 @@
 PYTHON ?= python3
-WEBSITE_DIR ?= .github/assets/website
+WEBSITE_DIR ?= website
 
 .PHONY: install-dev fmt fmt-check lint test build smoke website-install website-dev website-build website-check website-capture clean
 

@@ -21,3 +21,14 @@ updates:
     labels:
       - dependencies
       - python
+
+  - package-ecosystem: npm
+    directory: /website
+    open-pull-requests-limit: 10
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - website
