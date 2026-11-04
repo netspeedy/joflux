@@ -167,11 +167,15 @@ GitHub Pages site lives in `website/`; `make website-install`, `make website-che
 and `make website-build` cover it. [docs/release.md](docs/release.md) describes the
 release flow.
 
-The banner at the top of this page is generated. Edit the copy, layout or timing in
-`scripts/readme/build_readme_hero.py` and run `make readme-hero` to rebuild
-`assets/joflux-readme-hero.svg`. It downloads the font subsets from Google Fonts, so it
-needs network access. If you change the headline's words, measure them again with
-`scripts/readme/measure_headline.py`, which explains its own dependencies.
+The banner at the top of this page and the social cards are generated. Edit the
+copy, layout or timing in `scripts/readme/build_readme_hero.py` and run `make
+readme-hero`. That rebuilds `assets/joflux-readme-hero.svg`, the website's
+`website/public/og-image.png` and `assets/joflux-social-preview.png`, which is the
+image for GitHub's social preview and is uploaded by hand in the repository
+settings. It downloads the font subsets from Google Fonts, so it needs network
+access, and it renders the cards with headless Chrome or Chromium. If you change the
+headline's words, measure them again with `scripts/readme/measure_headline.py`,
+which explains its own dependencies.
 
 ## License
 
