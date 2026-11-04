@@ -97,15 +97,18 @@ jobs:
             depends_on "python@3.13"
 
             def install
-              python = Formula["python@3.13"].opt_bin/"python3.13"
+              python = formula_opt_bin("python@3.13")/"python3.13"
               wheel = Dir["joflux-*.whl"].first
               system python, "-m", "pip", "install", "--no-deps", "--prefix=#{libexec}", wheel
-              bin.install_symlink libexec/"bin/joflux"
+              site_packages = libexec/Language::Python.site_packages(python)
+              (bin/"joflux").write_env_script libexec/"bin/joflux", PYTHONPATH: site_packages
             end
 
             test do
               assert_match "joflux", shell_output("#{bin}/joflux --version")
               assert_match "export", shell_output("#{bin}/joflux --help")
+              assert_match "config file not found",
+                           shell_output("#{bin}/joflux --config #{testpath}/missing.toml export 2>&1", 2)
             end
           end
           EOF
