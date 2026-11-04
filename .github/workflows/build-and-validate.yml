@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: .github/assets/website/package-lock.json
+          cache-dependency-path: website/package-lock.json
 
       - name: Install project
         run: make install-dev PYTHON=python
@@ -70,7 +70,7 @@ jobs:
 
       - name: Validate GitHub Pages website
         run: |
-          npm ci --prefix .github/assets/website
+          npm ci --prefix website
           make website-check
           make website-build
 

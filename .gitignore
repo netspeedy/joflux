@@ -14,7 +14,7 @@ joflux.toml
 config.yaml
 migration_output/
 *.log
-.github/assets/website/.captures/
-.github/assets/website/dist/
-.github/assets/website/node_modules/
+website/.captures/
+website/dist/
+website/node_modules/
 .DS_Store
