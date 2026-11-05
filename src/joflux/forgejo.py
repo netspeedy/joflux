@@ -159,8 +159,9 @@ class ForgejoClient:
             return {"name": repo_name, "status": "error", "error": str(exc)}
 
         repo_info = repo_data if isinstance(repo_data, dict) else {}
-        # Forgejo won't list issues without its own tracker, or pull requests with the unit off,
-        # so those counts would fail with 404. Record why instead of asking.
+        # Forgejo won't list issues without its own tracker, pull requests with the unit off or in
+        # an empty repository, or releases with the unit off, so those counts would fail with 404.
+        # Record why instead of asking.
         counts: dict[str, int | str] = {}
         if repo_info.get("external_tracker"):
             counts["issues"] = "external"
@@ -168,6 +169,11 @@ class ForgejoClient:
             counts["issues"] = "off"
         if repo_info.get("has_pull_requests") is False:
             counts["pulls"] = "off"
+        elif repo_info.get("empty") is True:
+            # A repository with no commits can't have pull requests.
+            counts["pulls"] = 0
+        if repo_info.get("has_releases") is False:
+            counts["releases"] = "off"
 
         base = f"/api/v1/repos/{org_name}/{repo_name}"
         for label, path, filters in (
