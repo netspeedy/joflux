@@ -37,8 +37,9 @@ for a repository with a long issue history. joflux waits up to `max_wait_time` s
 answer, an hour by default. If no answer has come back by then, it records the repository as
 `initiated`, logs `<repo> may still be importing; run monitor to check it` and moves on to the
 next one, while Forgejo carries on with that import. A reverse proxy in front of Forgejo that gives
-up first, answering 504 (or 524 from Cloudflare), and a connection that drops before the answer
-arrives are treated the same way.
+up first, answering 504 (or 524 from Cloudflare), a connection that drops before the answer
+arrives, and an answer that's cut off partway or broken by a TLS error are treated the same way.
+joflux only records an import as `completed` from an answer it could read in full.
 
 joflux waits a second between requests. Each one is logged as it goes, in the shape
 `[<n>/<total>] Migrating <repo>`, and a summary at the end has the shape

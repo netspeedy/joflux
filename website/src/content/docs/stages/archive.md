@@ -79,9 +79,9 @@ to archive, because it wasn't verified or is already archived, gets no entry. `a
 any failed, or if any were left because they weren't verified.
 [Output files](/joflux/reference/output-files/) has the fields.
 
-A request that times out or loses its connection is recorded as `failed` too, with that error, and
-`archive` carries on with the next repository. GitHub may have archived the repository anyway, so
-check it on GitHub before you run `archive` again for it.
+A request that times out, loses its connection or gets an answer that's cut off partway is recorded
+as `failed` too, with that error, and `archive` carries on with the next repository. GitHub may have
+archived the repository anyway, so check it on GitHub before you run `archive` again for it.
 
 Keep `migration_output/` once you're done. Together the five files are the record of what moved,
 what arrived and what was archived.

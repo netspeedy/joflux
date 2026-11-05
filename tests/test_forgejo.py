@@ -1,11 +1,12 @@
 """Forgejo client tests."""
 
+import http.client as http_client
 import logging
 from typing import Any
 
 import pytest
 
-from joflux import forgejo
+from joflux import forgejo, http
 from joflux.forgejo import ForgejoClient
 from joflux.http import APIError, NoAnswerError
 
@@ -389,3 +390,28 @@ def test_repository_metadata_sends_only_the_filters_each_list_reads(monkeypatch)
         "labels": paging,
         "releases": paging,
     }
+
+
+def test_migrate_repository_treats_a_cut_off_answer_as_unanswered(monkeypatch) -> None:
+    """joflux won't record an import as completed from an answer it couldn't read."""
+
+    class CutOffResponse:
+        """A 201 whose body stops short."""
+
+        def __enter__(self) -> "CutOffResponse":
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+        def read(self) -> bytes:
+            """Fail the way http.client does when the connection ends early."""
+            raise http_client.IncompleteRead(b'{"id": 7', 400)
+
+    monkeypatch.setattr(http, "urlopen", lambda _request, timeout=30: CutOffResponse())
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+
+    result = _start_migration(client)
+
+    assert result.status == "initiated"
+    assert result.message.startswith("incomplete answer from https://forge.example/")

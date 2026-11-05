@@ -1,7 +1,9 @@
 """HTTP helper tests."""
 
+import http.client as http_client
 import io
 import json
+import ssl
 from typing import Any
 from urllib.error import HTTPError, URLError
 
@@ -78,3 +80,73 @@ def test_allowed_statuses_come_back_before_gateway_handling(monkeypatch) -> None
     _fake_urlopen(monkeypatch, _http_error(504))
 
     assert request_json("GET", URL, {}, allow_status=(504,))["_status"] == 504
+
+
+class _CutOffResponse:
+    """A response whose body stops short of its Content-Length."""
+
+    def __enter__(self) -> "_CutOffResponse":
+        return self
+
+    def __exit__(self, *_args) -> None:
+        return None
+
+    def read(self) -> bytes:
+        """Fail the way http.client does when the connection ends early."""
+        raise http_client.IncompleteRead(b'{"id": 7', 20)
+
+
+def test_an_answer_cut_off_partway_raises_no_answer_error(monkeypatch) -> None:
+    """IncompleteRead isn't an OSError, so without this it ended the run with a traceback."""
+    monkeypatch.setattr(http, "urlopen", lambda _request, timeout=30: _CutOffResponse())
+
+    with pytest.raises(NoAnswerError) as exc_info:
+        request_json("POST", URL, {}, payload={})
+
+    assert str(exc_info.value).startswith(f"incomplete answer from {URL}: IncompleteRead(")
+
+
+def test_a_tls_error_while_reading_raises_no_answer_error(monkeypatch) -> None:
+    """After the handshake, a TLS error means the answer was lost on the way."""
+    error = ssl.SSLError(1, "[SSL: DECRYPTION_FAILED_OR_BAD_RECORD_MAC] decryption failed")
+    _fake_urlopen(monkeypatch, error)
+
+    with pytest.raises(NoAnswerError) as exc_info:
+        request_json("GET", URL, {})
+
+    assert exc_info.value.status is None
+
+
+def test_a_tls_handshake_error_stays_a_plain_api_error(monkeypatch) -> None:
+    """urlopen wraps a handshake failure in URLError: the request never reached the server."""
+    handshake = ssl.SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED]")
+    _fake_urlopen(monkeypatch, URLError(handshake))
+
+    with pytest.raises(APIError) as exc_info:
+        request_json("GET", URL, {})
+
+    assert not isinstance(exc_info.value, NoAnswerError)
+    assert str(exc_info.value).startswith(f"failed to connect to {URL}:")
+
+
+class _CutOffBody:
+    """An error answer's body that stops short."""
+
+    def read(self, *_args) -> bytes:
+        """Fail partway through, keeping what arrived."""
+        raise http_client.IncompleteRead(b'{"message": "boo', 30)
+
+    def close(self) -> None:
+        """Nothing to release."""
+
+
+def test_an_error_answer_with_a_cut_off_body_keeps_its_status(monkeypatch) -> None:
+    """The status line arrived intact, so the error is still that answer, with what body came."""
+    _fake_urlopen(monkeypatch, HTTPError(URL, 500, "error", None, _CutOffBody()))
+
+    with pytest.raises(APIError) as exc_info:
+        request_json("GET", URL, {})
+
+    assert not isinstance(exc_info.value, NoAnswerError)
+    assert exc_info.value.status == 500
+    assert exc_info.value.body == '{"message": "boo'

@@ -44,7 +44,7 @@ on the target when `migrate` runs again.
 | --- | --- |
 | `repo` | Repository name |
 | `status` | `completed` when Forgejo answered with the imported repository, `initiated` when no answer came back and the import may still be running, or `failed` when Forgejo rejected or failed it |
-| `message` | For `completed`, `Forgejo finished the import`. For `initiated`, why no answer came, followed by `; Forgejo may still be importing the repository`, such as `no answer from <url>: timed out; Forgejo may still be importing the repository` or `HTTP 504 from <url>; Forgejo may still be importing the repository`. For `failed`, `Forgejo rejected or failed the import:` and the HTTP error. |
+| `message` | For `completed`, `Forgejo finished the import`. For `initiated`, why no answer came, followed by `; Forgejo may still be importing the repository`, such as `no answer from <url>: timed out; Forgejo may still be importing the repository`, `HTTP 504 from <url>; Forgejo may still be importing the repository`, or `incomplete answer from <url>: ...` for an answer that was cut off partway. For `failed`, `Forgejo rejected or failed the import:` and the HTTP error. |
 | `migration_id` | For `completed`, the target repository's ID from Forgejo's answer; otherwise `null` |
 | `timestamp` | When the request finished |
 

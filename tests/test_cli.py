@@ -1,6 +1,7 @@
 """CLI tests."""
 
 import argparse
+import http.client as http_client
 import json
 import logging
 from typing import Any
@@ -521,3 +522,34 @@ def test_archive_skips_repositories_that_are_already_archived(
     assert "Archive complete: 2 archived, 0 failed, 2 already archived, 0 not verified" in (
         caplog.text
     )
+
+
+def test_verify_carries_on_after_an_answer_is_cut_off(tmp_path, monkeypatch) -> None:
+    """A cut-off answer is that repository's error, not a traceback that ends the run."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "cut"}, {"name": "fine"}])
+
+    class CutOffResponse(_FakeResponse):
+        """A response whose body stops short."""
+
+        def read(self) -> bytes:
+            """Fail the way http.client does when the connection ends early."""
+            raise http_client.IncompleteRead(b'{"size"', 40)
+
+    def fake_urlopen(request: Any, timeout: int = 30) -> Any:
+        del timeout
+        if request.full_url.endswith("/repos/target/cut"):
+            return CutOffResponse({})
+        if request.full_url.endswith("/repos/target/fine"):
+            return _FakeResponse({"size": 1, "has_wiki_contents": False})
+        return _FakeResponse([])
+
+    monkeypatch.setattr(http, "urlopen", fake_urlopen)
+
+    assert cli.cmd_verify(argparse.Namespace(), _config(tmp_path)) == 1
+    events = state.load_json(state.verify_file)
+    assert [(event["repo"], event["status"]) for event in events] == [
+        ("cut", "missing"),
+        ("fine", "verified"),
+    ]
+    assert events[0]["details"].startswith("incomplete answer from https://forge.example/")

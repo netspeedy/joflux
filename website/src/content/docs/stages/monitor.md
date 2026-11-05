@@ -36,8 +36,8 @@ every pending repository:
   stays pending.
 - Once its git data is there, it's recorded as `unconfirmed`, with a warning to check it in the
   Forgejo web UI, and `monitor` stops checking it for this run.
-- If the request times out or the connection drops, it stays pending for the next pass, because
-  that says nothing about the import.
+- If the request times out, the connection drops or the answer is cut off, it stays pending for
+  the next pass, because that says nothing about the import.
 - Any other error from the target records it as `error`.
 
 `monitor` never records a repository as `completed`; only `migrate` can, from Forgejo's answer.
