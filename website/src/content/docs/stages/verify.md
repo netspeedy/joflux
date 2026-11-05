@@ -16,8 +16,9 @@ you exported, whatever happened to its migration request.
 ## What it records
 
 For each repository it reads the target repository and counts its issues, pull requests, labels
-and releases, paging through all of them, open and closed. A repository it can read is recorded as
-`verified`, with details in the shape:
+and releases, paging through all of them, open and closed. Issues and pull requests are counted
+separately, so the issue count doesn't include pull requests. A repository it can read is recorded
+as `verified`, with details in the shape:
 
 ```text
 size:<size> issues:<n> pulls:<n> labels:<n> releases:<n>
@@ -25,7 +26,9 @@ size:<size> issues:<n> pulls:<n> labels:<n> releases:<n>
 
 The size is the one the target reports. The counts are of what Forgejo imported, so with
 `metadata = false` in the config they're all zero. If the repository can't be read, or one of the
-counts fails, it's recorded as `missing` along with the error.
+counts fails, it's recorded as `missing` along with the error. That includes a repository whose
+issue tracker has been turned off on the target, or pointed at an external tracker: Forgejo won't
+list its issues, and the count fails with HTTP 404.
 
 Each check is logged in the shape `[<n>/<total>] Verifying <repo>`, and the summary at the end has
 the shape `Verification complete: <verified> verified, <missing> missing`.
