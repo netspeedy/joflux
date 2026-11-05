@@ -69,6 +69,41 @@ def test_repository_metadata_counts_paginated_collections(monkeypatch) -> None:
     assert metadata["releases"] == 52
 
 
+def test_repository_metadata_counts_issues_without_pull_requests(monkeypatch) -> None:
+    """Forgejo lists pull requests among the issues unless asked for type=issues."""
+    issues = [{"number": 1}, {"number": 2}]
+    pulls = [{"number": 3}, {"number": 4}, {"number": 5}]
+
+    def fake_request_json(
+        _method: str,
+        url: str,
+        _headers: dict[str, str],
+        payload: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: int = 30,
+        allow_status: tuple[int, ...] = (),
+    ) -> Any:
+        del payload, timeout, allow_status
+        params = params or {}
+        if url.endswith("/api/v1/repos/target/example"):
+            return {"size": 12}
+        if url.endswith("/issues"):
+            assert params.get("state") == "all"
+            # ListIssues in routers/api/v1/repo/issue.go: no type means both kinds.
+            return {"issues": issues, "pulls": pulls}.get(params.get("type"), issues + pulls)
+        if url.endswith("/pulls"):
+            return pulls
+        return []
+
+    monkeypatch.setattr(forgejo, "request_json", fake_request_json)
+
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+    metadata = client.repository_metadata("target", "example")
+
+    assert metadata["issues"] == 2
+    assert metadata["pulls"] == 3
+
+
 METADATA_SWITCHES = ("wiki", "issues", "pull_requests", "labels", "milestones", "releases")
 
 

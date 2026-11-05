@@ -161,15 +161,17 @@ class ForgejoClient:
         except APIError as exc:
             return {"name": repo_name, "status": "error", "error": str(exc)}
 
+        base = f"/api/v1/repos/{org_name}/{repo_name}"
         counts: dict[str, int] = {}
-        for label, path in {
-            "issues": f"/api/v1/repos/{org_name}/{repo_name}/issues",
-            "pulls": f"/api/v1/repos/{org_name}/{repo_name}/pulls",
-            "labels": f"/api/v1/repos/{org_name}/{repo_name}/labels",
-            "releases": f"/api/v1/repos/{org_name}/{repo_name}/releases",
-        }.items():
+        for label, path, filters in (
+            # Forgejo's issue list includes pull requests unless it's asked for issues alone.
+            ("issues", f"{base}/issues", {"state": "all", "type": "issues"}),
+            ("pulls", f"{base}/pulls", {"state": "all"}),
+            ("labels", f"{base}/labels", {"state": "all"}),
+            ("releases", f"{base}/releases", {"state": "all"}),
+        ):
             try:
-                counts[label] = self._count_items(path)
+                counts[label] = self._count_items(path, filters)
             except APIError as exc:
                 return {
                     "name": repo_name,
@@ -188,7 +190,7 @@ class ForgejoClient:
             "status": "verified",
         }
 
-    def _count_items(self, path: str) -> int:
+    def _count_items(self, path: str, filters: dict[str, str]) -> int:
         total = 0
         page = 1
         per_page = 50
@@ -197,7 +199,7 @@ class ForgejoClient:
                 "GET",
                 f"{self.url}{path}",
                 self.headers,
-                params={"page": page, "limit": per_page, "state": "all"},
+                params={**filters, "page": page, "limit": per_page},
             )
             if not isinstance(data, list) or not data:
                 return total
