@@ -30,7 +30,8 @@ details are worth knowing:
   across.
 - A repository with no description on GitHub gets `Migrated from GitHub by joflux`.
 - If the inventory has no clone URL for a repository, joflux uses
-  `https://github.com/<org>/<name>.git`.
+  `https://github.com/<org>/<name>.git`, or the same address on your server when `github.api_url`
+  points at GitHub Enterprise Server.
 
 Forgejo doesn't answer a request until it has finished that import, which can take many minutes
 for a repository with a long issue history. joflux waits up to `max_wait_time` seconds for each
