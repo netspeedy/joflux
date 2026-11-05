@@ -85,10 +85,10 @@ pointer files but not the files they point to.
 
 ## Polling and logging
 
-`poll_interval` is how many seconds `monitor` waits between passes, and `max_wait_time` is how many
-seconds it keeps going before giving up on repositories that haven't arrived. `max_wait_time` is
-also how long `migrate` waits for Forgejo to answer each migration request, because Forgejo only
-answers once the import is done. Both must be positive whole numbers. `log_level` is one of `DEBUG`,
+`max_wait_time` is how many seconds `migrate` waits for Forgejo to answer each migration request,
+because Forgejo only answers once the import is done, and how long `monitor` keeps polling before
+giving up on repositories that still haven't shown any git data. `poll_interval` is how many seconds
+`monitor` waits between passes. Both must be positive whole numbers. `log_level` is one of `DEBUG`,
 `INFO`, `WARNING`, `ERROR` or `CRITICAL`, in any case.
 
 ## The output directory

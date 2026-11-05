@@ -18,8 +18,8 @@ joflux --config joflux.toml archive
 | Stage | What it does | Writes |
 | --- | --- | --- |
 | [`export`](/joflux/stages/export/) | Lists every repository in the GitHub organization | `repos-inventory.json` |
-| [`migrate`](/joflux/stages/migrate/) | Resolves the target organization and asks Forgejo to migrate each repository | `migration-log.json` |
-| [`monitor`](/joflux/stages/monitor/) | Polls the target until each started migration completes, fails or runs out of time | `migration-status.json` |
+| [`migrate`](/joflux/stages/migrate/) | Resolves the target organization and has Forgejo migrate each repository, waiting for each to finish | `migration-log.json` |
+| [`monitor`](/joflux/stages/monitor/) | Rechecks any migration Forgejo didn't answer for while `migrate` was waiting | `migration-status.json` |
 | [`verify`](/joflux/stages/verify/) | Checks each target repository and records its size and issue, pull request, label and release counts | `verification-report.json` |
 | [`archive`](/joflux/stages/archive/) | Archives the GitHub originals | `archive-log.json` |
 
@@ -35,9 +35,9 @@ carry on later. They don't all behave the same way when you run them twice, thou
 four append to their files, so earlier entries stay and each run adds its own with a timestamp.
 
 `monitor` is the one built to be re-run. It only checks repositories whose latest migration
-request was started and that haven't since been recorded as completed or failed, so stopping it
-and starting it again picks up where it left off. `verify` checks every repository in the
-inventory each time, which makes it safe to repeat once stragglers have arrived.
+request went unanswered and that haven't been settled since, so stopping it and starting it again
+picks up where it left off. `verify` checks every repository in the inventory each time, which
+makes it safe to repeat once stragglers have arrived.
 
 `migrate` and `archive` act on every repository in the inventory each time they run. Running
 `migrate` again sends a new migration request for all of them, including ones that already
@@ -56,7 +56,7 @@ can run the stages in sequence and stop at the first non-zero exit.
   links={[
     { title: "Export", href: "/joflux/stages/export/", description: "Read the organization from GitHub into the inventory." },
     { title: "Migrate", href: "/joflux/stages/migrate/", description: "Have Forgejo migrate each repository." },
-    { title: "Monitor", href: "/joflux/stages/monitor/", description: "Wait for the started migrations to arrive." },
+    { title: "Monitor", href: "/joflux/stages/monitor/", description: "Recheck the migrations Forgejo didn't answer for." },
     { title: "Verify", href: "/joflux/stages/verify/", description: "Check every repository made it, with its counts." },
     { title: "Archive", href: "/joflux/stages/archive/", description: "Archive the GitHub originals once you're happy." },
   ]}

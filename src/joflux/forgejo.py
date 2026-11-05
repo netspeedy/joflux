@@ -3,9 +3,28 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from .http import APIError, request_json
+
+# A gateway answering 504 or 524 (Cloudflare) has given up waiting on Forgejo,
+# which keeps importing behind it.
+GATEWAY_TIMEOUT_STATUSES = (504, 524)
+
+
+@dataclass(frozen=True)
+class MigrationResult:
+    """What a migrate request established about one repository.
+
+    status is "completed" when Forgejo answered with the imported repository,
+    "initiated" when the request went out but no answer came back, so the import may
+    still be running, and "failed" when Forgejo rejected or failed it.
+    """
+
+    status: str
+    repo_id: int | None = None
+    message: str = ""
 
 
 class ForgejoClient:
@@ -43,13 +62,15 @@ class ForgejoClient:
         description: str,
         metadata: bool = True,
         timeout: int = 30,
-    ) -> int | bool | None:
+    ) -> MigrationResult:
         """Migrate a GitHub repository into the target Forgejo instance.
 
         Forgejo only imports the wiki, issues, pull requests, labels, milestones and
         releases when the request names the source service and switches each of them
-        on; otherwise it copies the git data alone. The request doesn't return until
-        Forgejo has finished the import, so ``timeout`` has to allow for that.
+        on; otherwise it copies the git data alone. POST /repos/migrate is synchronous:
+        Forgejo runs the whole import before it answers, and its 201 response is the
+        only signal the API gives that an import has finished. ``timeout`` therefore
+        has to cover the import itself.
         """
         payload = {
             "clone_addr": clone_url,
@@ -79,16 +100,40 @@ class ForgejoClient:
                 timeout=timeout,
                 allow_status=(201, 202),
             )
+        except (TimeoutError, ConnectionError) as exc:
+            self.logger.warning("No answer from Forgejo for %s: %s", repo_name, exc)
+            return MigrationResult(
+                "initiated",
+                message=f"Forgejo didn't answer ({exc}); the import may still be running",
+            )
         except APIError as exc:
+            if exc.status in GATEWAY_TIMEOUT_STATUSES:
+                self.logger.warning("Gateway gave up waiting on Forgejo for %s: %s", repo_name, exc)
+                return MigrationResult(
+                    "initiated", message=f"{exc}; Forgejo may still be importing the repository"
+                )
             self.logger.error("Migration failed for %s: %s", repo_name, exc.body or exc)
-            return None
+            return MigrationResult(
+                "failed", message=f"Forgejo rejected or failed the import: {exc}"
+            )
 
-        if isinstance(response, dict) and isinstance(response.get("id"), int):
-            return response["id"]
-        return True
+        repo_id = response.get("id") if isinstance(response, dict) else None
+        return MigrationResult(
+            "completed",
+            repo_id=repo_id if isinstance(repo_id, int) else None,
+            message="Forgejo finished the import",
+        )
 
     def repository_status(self, org_name: str, repo_name: str) -> str:
-        """Return completed, in_progress, or error for a migrated repository."""
+        """Return in_progress, unconfirmed or error for a repository being imported.
+
+        Forgejo's repository JSON has no migration status. The repository exists from
+        the moment the import starts, and a failed import is left behind rather than
+        deleted, so a 200 never means the import finished. The ``empty`` flag only
+        turns false once the git data is in, which is before issues, pull requests and
+        releases are imported. So this reports in_progress until the git data shows
+        up and unconfirmed after that, and never completed.
+        """
         try:
             data = request_json(
                 "GET",
@@ -99,11 +144,13 @@ class ForgejoClient:
         except APIError:
             return "error"
 
-        if isinstance(data, dict) and data.get("_status") == 404:
+        if not isinstance(data, dict):
+            return "error"
+        if data.get("_status") == 404:
             return "in_progress"
-        if isinstance(data, dict):
-            return "completed"
-        return "error"
+        if data.get("empty") is False:
+            return "unconfirmed"
+        return "in_progress"
 
     def repository_metadata(self, org_name: str, repo_name: str) -> dict[str, Any]:
         """Return a compact verification summary for a repository."""

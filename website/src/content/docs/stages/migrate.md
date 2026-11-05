@@ -1,6 +1,6 @@
 ---
 title: Migrate
-description: migrate resolves the target organization and asks Forgejo to migrate each repository in the inventory, one at a time.
+description: migrate resolves the target organization and has Forgejo migrate each repository in the inventory, one at a time, waiting for each import to finish.
 ---
 
 `migrate` reads `repos-inventory.json`, resolves the target Forgejo organization, and asks Forgejo
@@ -34,27 +34,44 @@ details are worth knowing:
 
 Forgejo doesn't answer a request until it has finished that import, which can take many minutes
 for a repository with a long issue history. joflux waits up to `max_wait_time` seconds for each
-answer, an hour by default. If Forgejo still hasn't answered by then, `migrate` stops with
-`timed out` and exit code 1, and Forgejo carries on with that import.
+answer, an hour by default. If no answer has come back by then, it records the repository as
+`initiated`, logs `<repo> may still be importing; run monitor to check it` and moves on to the
+next one, while Forgejo carries on with that import. A reverse proxy in front of Forgejo that gives
+up first, answering 504 (or 524 from Cloudflare), and a connection that drops before the answer
+arrives are treated the same way.
 
 joflux waits a second between requests. Each one is logged as it goes, in the shape
 `[<n>/<total>] Migrating <repo>`, and a summary at the end has the shape
-`Migration requests complete: <started> started, <failed> failed`.
+`Migrations finished: <completed> completed, <unconfirmed> unconfirmed, <failed> failed`.
 
 ## What it writes
 
-Each request appends an entry to `migration-log.json`. A started migration is recorded as
-`initiated`, with the message `Migration started` and the migration ID Forgejo returned. A request
-that fails is recorded as `failed`, with `Failed to start migration`, and the error Forgejo sent
-back is logged. [Output files](/joflux/reference/output-files/) has every field.
+Each request appends an entry to `migration-log.json` with its outcome:
 
-`migrate` exits 1 if any request failed, even when the rest were started.
+- `completed`, with `Forgejo finished the import` and the target repository's ID, when Forgejo
+  answered with the imported repository.
+- `initiated`, when no answer came back, with a message saying why and that the import may still
+  be running. These are the repositories `monitor` checks.
+- `failed`, when Forgejo rejected or failed the import, with
+  `Forgejo rejected or failed the import:` and the HTTP error. The error Forgejo sent back is
+  logged too.
+
+[Output files](/joflux/reference/output-files/) has every field.
+
+`migrate` exits 1 if any import failed, even when the rest completed. An unanswered import doesn't
+count as a failure, because it may still finish.
 
 ## Before you monitor
 
-Forgejo answers a migration request once it has finished importing that repository, so by the
-time `migrate` logs a repository as `initiated`, its import is normally done. Run
-[`monitor`](/joflux/stages/monitor/) next to confirm that each one is on the target.
+Forgejo answers a migration request only once it has finished importing that repository, and that
+answer is the only sign of a finished import that its API gives. A repository logged as
+`completed` is done, so `monitor` has nothing to do for it. Run
+[`monitor`](/joflux/stages/monitor/) next anyway: it checks the repositories logged as
+`initiated`, and exits 0 straight away when there are none.
+
+A failed import isn't always cleaned up. Forgejo can leave the repository behind on the target,
+and it refuses a new migration with the same name until that repository is deleted, so delete it
+on the target before you migrate it again.
 
 Running `migrate` a second time sends a new request for every repository in the inventory,
 including ones that already arrived, so only re-run it with an inventory that lists what's left.

@@ -41,5 +41,6 @@ If anything is missing, `verify` logs `Missing repositories:` with their names a
 
 Read `verification-report.json` and compare the counts with what the repositories hold on GitHub.
 `archive` doesn't look at this report: it archives every repository in the inventory, so it's up to
-you to be sure the move worked first. If repositories were missing because they hadn't finished
-arriving, run [`monitor`](/joflux/stages/monitor/) and then `verify` again.
+you to be sure the move worked first. A repository that [`monitor`](/joflux/stages/monitor/)
+recorded as `unconfirmed` is verified with whatever had arrived when `verify` ran, so compare its
+counts with care, and run `verify` again once you've checked it in the Forgejo web UI.

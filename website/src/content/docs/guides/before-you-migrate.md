@@ -18,6 +18,10 @@ token's API quota; Forgejo pauses until the quota resets when it runs out. `migr
 If the target won't take metadata imports, or you only need the code, set `metadata = false` under
 `[migration]`.
 
+If the target sits behind a reverse proxy, the proxy's read timeout has to be longer than your
+slowest import. Otherwise the proxy answers 504 while Forgejo is still working, and joflux can only
+record that import as `initiated` and leave it to `monitor`, which can't confirm it.
+
 ## Create the target organization
 
 `migrate` doesn't create the organization. It looks it up first and stops with exit code 1 if it

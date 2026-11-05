@@ -7,6 +7,7 @@ import pytest
 from joflux import cli
 from joflux.cli import _pending_migration_repos, main
 from joflux.config import AppConfig
+from joflux.forgejo import MigrationResult
 from joflux.state import MigrationState
 
 
@@ -80,10 +81,10 @@ def test_migrate_passes_metadata_switch_and_wait_time(tmp_path, monkeypatch) -> 
             """Return a fixed organization id."""
             return 3
 
-        def migrate_repository(self, **kwargs) -> int:
+        def migrate_repository(self, **kwargs) -> MigrationResult:
             """Record the request and report a finished import."""
             calls.append(kwargs)
-            return 11
+            return MigrationResult("completed", 11)
 
     monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
     monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
@@ -102,3 +103,83 @@ def test_migrate_passes_metadata_switch_and_wait_time(tmp_path, monkeypatch) -> 
     assert cli.cmd_migrate(argparse.Namespace(), config) == 0
     assert calls[0]["metadata"] is False
     assert calls[0]["timeout"] == 5400
+
+
+def _config(tmp_path, **overrides) -> AppConfig:
+    values = {
+        "github_org": "source",
+        "github_token": "github-token",
+        "forgejo_url": "https://forge.example",
+        "forgejo_org": "target",
+        "forgejo_token": "forgejo-token",
+        "output_dir": str(tmp_path),
+    }
+    values.update(overrides)
+    return AppConfig(**values)
+
+
+def test_migrate_records_what_forgejo_answered(tmp_path, monkeypatch) -> None:
+    """A 201 is recorded as completed, so monitor only rechecks unanswered imports."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "done"}, {"name": "slow"}, {"name": "taken"}])
+    results = {
+        "done": MigrationResult("completed", 7, "Forgejo finished the import"),
+        "slow": MigrationResult("initiated", None, "Forgejo didn't answer"),
+        "taken": MigrationResult("failed", None, "HTTP 409"),
+    }
+    timeouts: list[int] = []
+
+    class FakeForgejoClient:
+        """Forgejo test double that answers from a table."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def organization_id(self, _org_name: str) -> int:
+            """Return a fixed organization id."""
+            return 3
+
+        def migrate_repository(self, **kwargs) -> MigrationResult:
+            """Return the canned result for this repository."""
+            timeouts.append(kwargs["timeout"])
+            return results[kwargs["repo_name"]]
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    exit_code = cli.cmd_migrate(argparse.Namespace(), _config(tmp_path, max_wait_time=5400))
+
+    events = state.load_json(state.migration_log)
+    assert exit_code == 1
+    assert timeouts == [5400, 5400, 5400]
+    assert [(event["repo"], event["status"], event["migration_id"]) for event in events] == [
+        ("done", "completed", 7),
+        ("slow", "initiated", None),
+        ("taken", "failed", None),
+    ]
+    assert _pending_migration_repos(events, []) == ["slow"]
+
+
+def test_monitor_does_not_call_an_unanswered_import_complete(tmp_path, monkeypatch) -> None:
+    """Git data on the target isn't proof the issues and releases arrived."""
+    state = MigrationState(str(tmp_path))
+    state.log_migration("slow", "initiated", "Forgejo didn't answer")
+
+    class FakeForgejoClient:
+        """Forgejo test double whose repository has its git data."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def repository_status(self, _org_name: str, _repo_name: str) -> str:
+            """Report git data present but the import unconfirmed."""
+            return "unconfirmed"
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+
+    exit_code = cli.cmd_monitor(argparse.Namespace(interval=1), _config(tmp_path, max_wait_time=0))
+
+    statuses = state.load_json(state.status_file)
+    assert exit_code == 1
+    assert [(event["repo"], event["status"]) for event in statuses] == [("slow", "unconfirmed")]
+    assert _pending_migration_repos(state.load_json(state.migration_log), statuses) == ["slow"]
