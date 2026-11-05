@@ -553,3 +553,35 @@ def test_verify_carries_on_after_an_answer_is_cut_off(tmp_path, monkeypatch) -> 
         ("fine", "verified"),
     ]
     assert events[0]["details"].startswith("incomplete answer from https://forge.example/")
+
+
+def test_verify_details_say_when_a_unit_is_off(tmp_path, monkeypatch) -> None:
+    """A unit that's off shows in the details instead of a count."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "quiet"}])
+
+    class FakeForgejoClient:
+        """Forgejo test double for a repository with issues and pull requests off."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def repository_metadata(self, _org_name: str, repo_name: str) -> dict:
+            """Return what repository_metadata gives for that repository."""
+            return {
+                "name": repo_name,
+                "size": 1,
+                "issues": "off",
+                "pulls": "off",
+                "labels": 4,
+                "releases": 5,
+                "wiki": False,
+                "status": "verified",
+            }
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+
+    assert cli.cmd_verify(argparse.Namespace(), _config(tmp_path)) == 0
+    assert state.load_json(state.verify_file)[0]["details"] == (
+        "size:1 issues:off pulls:off labels:4 releases:5 wiki:no"
+    )

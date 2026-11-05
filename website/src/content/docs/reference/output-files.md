@@ -68,7 +68,7 @@ One entry per repository per `verify` run.
 | --- | --- |
 | `repo` | Repository name |
 | `status` | `verified` or `missing` |
-| `details` | For `verified`, `size:<size> issues:<n> pulls:<n> labels:<n> releases:<n> wiki:<yes\|no>`. For `missing`, the error, or `not found`. |
+| `details` | For `verified`, `size:<size> issues:<n> pulls:<n> labels:<n> releases:<n> wiki:<yes\|no>`, where `issues` is `off` or `external` and `pulls` is `off` when that part of the target repository is turned off. For `missing`, the error, or `not found`. |
 | `verified_at` | When it was checked |
 
 ## archive-log.json
