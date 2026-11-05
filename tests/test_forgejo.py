@@ -104,6 +104,32 @@ def test_repository_metadata_counts_issues_without_pull_requests(monkeypatch) ->
     assert metadata["pulls"] == 3
 
 
+@pytest.mark.parametrize("contents", [True, False])
+def test_repository_metadata_reports_whether_a_wiki_arrived(monkeypatch, contents: bool) -> None:
+    """has_wiki is the wiki unit being on; has_wiki_contents is a wiki actually being there."""
+
+    def fake_request_json(
+        _method: str,
+        url: str,
+        _headers: dict[str, str],
+        payload: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: int = 30,
+        allow_status: tuple[int, ...] = (),
+    ) -> Any:
+        del payload, params, timeout, allow_status
+        if url.endswith("/api/v1/repos/target/example"):
+            return {"size": 12, "has_wiki": True, "has_wiki_contents": contents}
+        return []
+
+    monkeypatch.setattr(forgejo, "request_json", fake_request_json)
+
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+    metadata = client.repository_metadata("target", "example")
+
+    assert metadata["wiki"] is contents
+
+
 METADATA_SWITCHES = ("wiki", "issues", "pull_requests", "labels", "milestones", "releases")
 
 

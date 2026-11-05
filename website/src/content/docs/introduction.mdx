@@ -35,8 +35,9 @@ originals rather than removing them.
 3. `monitor` rechecks any migration Forgejo didn't answer for in time, and records what it can
    tell about each in `migration-status.json`.
 
-4. `verify` checks every repository in the inventory on the target and writes its size and its
-   issue, pull request, label and release counts to `verification-report.json`.
+4. `verify` checks every repository in the inventory on the target and writes its size, its
+   issue, pull request, label and release counts, and whether it has a wiki to
+   `verification-report.json`.
 
 5. `archive` asks you to confirm, then archives the GitHub originals and logs each one in
    `archive-log.json`.

@@ -186,7 +186,13 @@ class ForgejoClient:
             "pulls": counts["pulls"],
             "labels": counts["labels"],
             "releases": counts["releases"],
-            "has_wiki": repo_data.get("has_wiki", False) if isinstance(repo_data, dict) else False,
+            # has_wiki only says the wiki unit is switched on. has_wiki_contents is whether the
+            # wiki's git repository exists, which after an import means Forgejo brought one across.
+            "wiki": (
+                bool(repo_data.get("has_wiki_contents", False))
+                if isinstance(repo_data, dict)
+                else False
+            ),
             "status": "verified",
         }
 
