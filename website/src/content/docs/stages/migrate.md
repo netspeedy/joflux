@@ -16,15 +16,26 @@ the target organization can't be resolved. Create the organization on Forgejo be
 ## What each request asks for
 
 For every repository, joflux asks Forgejo to import it from its GitHub clone URL into the target
-organization. A few details are worth knowing:
+organization, naming GitHub as the source so Forgejo can bring more than the git data. A few
+details are worth knowing:
 
+- Forgejo imports the wiki, issues, pull requests (with their comments and reviews), labels,
+  milestones and releases along with the git data. Set `metadata = false` under `[migration]` to
+  import only the git data; [Configuration](/joflux/guides/configuration/#metadata) has more.
+- Git LFS objects aren't requested, so a repository that uses LFS arrives with its pointer files
+  but not the files they point to.
 - The copy is a normal repository, not a mirror, so it doesn't keep following GitHub afterwards.
 - It's private on the target if it was private on GitHub.
-- Forgejo clones it with the GitHub token, using the GitHub organization name as the username, so
-  private repositories come across.
+- Forgejo clones it and reads its metadata with the GitHub token, so private repositories come
+  across.
 - A repository with no description on GitHub gets `Migrated from GitHub by joflux`.
 - If the inventory has no clone URL for a repository, joflux uses
   `https://github.com/<org>/<name>.git`.
+
+Forgejo doesn't answer a request until it has finished that import, which can take many minutes
+for a repository with a long issue history. joflux waits up to `max_wait_time` seconds for each
+answer, an hour by default. If Forgejo still hasn't answered by then, `migrate` stops with
+`timed out` and exit code 1, and Forgejo carries on with that import.
 
 joflux waits a second between requests. Each one is logged as it goes, in the shape
 `[<n>/<total>] Migrating <repo>`, and a summary at the end has the shape

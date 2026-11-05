@@ -12,6 +12,12 @@ Forgejo instances differ in what they allow. Some restrict private imports, meta
 many repositories an organization can hold, or how many migrations run at once. Check the target's
 limits before starting on a large organization.
 
+Importing issues and pull requests takes far longer than copying git data, and it spends the GitHub
+token's API quota; Forgejo pauses until the quota resets when it runs out. `migrate` waits up to
+`max_wait_time` seconds for each repository, so raise it if your largest repositories need longer.
+If the target won't take metadata imports, or you only need the code, set `metadata = false` under
+`[migration]`.
+
 ## Create the target organization
 
 `migrate` doesn't create the organization. It looks it up first and stops with exit code 1 if it
@@ -29,8 +35,9 @@ export JOFLUX_FORGEJO_TOKEN="your_forgejo_token"
 ```
 
 The GitHub token has to list the organization's repositories and clone any private ones you're
-moving, because Forgejo clones each repository with it. If you'll run `archive`, it also needs to
-update repository settings.
+moving, because Forgejo clones each repository with it. Forgejo also reads each repository's
+issues, pull requests, labels, milestones and releases through the GitHub API with it, so it needs
+read access to those too. If you'll run `archive`, it also needs to update repository settings.
 
 The Forgejo or Codeberg token has to create repositories in the target organization. For Codeberg,
 `JOFLUX_CODEBERG_TOKEN` works in place of `JOFLUX_FORGEJO_TOKEN`.

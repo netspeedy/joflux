@@ -14,3 +14,4 @@ poll_interval = 30
 max_wait_time = 3600
 log_level = "INFO"
 output_dir = "migration_output"
+metadata = true

@@ -32,6 +32,10 @@ list below wins, which puts the flat keys ahead of the sectioned ones.
 | Maximum wait, in seconds | `max_wait_time`, `migration.max_wait_time` | `3600` |
 | Log level | `log_level`, `migration.log_level` | `INFO` |
 | Output directory | `output_dir`, `migration.output_dir` | `migration_output` |
+| Import metadata | `metadata`, `migration.metadata` | `true` |
+
+`metadata` switches the wiki, issues, pull requests, labels, milestones and releases on or off
+together; [Configuration](/joflux/guides/configuration/#metadata) has what it changes.
 
 ## Tokens
 
@@ -44,7 +48,9 @@ neither, the run stops with a config error naming the first key and the variable
 
 A missing or blank required key stops the run with `missing required config key:` and the
 setting's first name. `poll_interval` and `max_wait_time` must be positive whole numbers, and
-anything else stops it with `config key must be a positive integer:`. `log_level` is case
-insensitive and must be one of `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`.
+anything else stops it with `config key must be a positive integer:`. `metadata` must be `true` or
+`false`, and anything else, a quoted `"false"` included, stops it with
+`config key must be true or false:`. `log_level` is case insensitive and must be one of `DEBUG`,
+`INFO`, `WARNING`, `ERROR` or `CRITICAL`.
 
 The file has to hold a mapping at the top level. Every config error exits with code 2.

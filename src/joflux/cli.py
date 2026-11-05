@@ -150,6 +150,8 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
             auth_token=config.github_token,
             auth_username=config.github_org,
             description=description,
+            metadata=config.migrate_metadata,
+            timeout=config.max_wait_time,
         )
 
         if migration_id:

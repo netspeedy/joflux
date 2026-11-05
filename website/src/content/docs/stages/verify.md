@@ -23,8 +23,9 @@ and releases, paging through all of them, open and closed. A repository it can r
 size:<size> issues:<n> pulls:<n> labels:<n> releases:<n>
 ```
 
-The size is the one the target reports. If the repository can't be read, or one of the counts
-fails, it's recorded as `missing` along with the error.
+The size is the one the target reports. The counts are of what Forgejo imported, so with
+`metadata = false` in the config they're all zero. If the repository can't be read, or one of the
+counts fails, it's recorded as `missing` along with the error.
 
 Each check is logged in the shape `[<n>/<total>] Verifying <repo>`, and the summary at the end has
 the shape `Verification complete: <verified> verified, <missing> missing`.

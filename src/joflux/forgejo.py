@@ -41,18 +41,33 @@ class ForgejoClient:
         auth_token: str,
         auth_username: str,
         description: str,
+        metadata: bool = True,
+        timeout: int = 30,
     ) -> int | bool | None:
-        """Start a repository migration into the target Forgejo instance."""
+        """Migrate a GitHub repository into the target Forgejo instance.
+
+        Forgejo only imports the wiki, issues, pull requests, labels, milestones and
+        releases when the request names the source service and switches each of them
+        on; otherwise it copies the git data alone. The request doesn't return until
+        Forgejo has finished the import, so ``timeout`` has to allow for that.
+        """
         payload = {
             "clone_addr": clone_url,
             "repo_name": repo_name,
             "uid": org_id,
             "repo_owner_id": org_id,
             "private": private,
+            "service": "github",
             "auth_token": auth_token,
             "auth_username": auth_username,
             "mirror": False,
             "description": description,
+            "wiki": metadata,
+            "issues": metadata,
+            "pull_requests": metadata,
+            "labels": metadata,
+            "milestones": metadata,
+            "releases": metadata,
         }
 
         try:
@@ -61,6 +76,7 @@ class ForgejoClient:
                 f"{self.url}/api/v1/repos/migrate",
                 self.headers,
                 payload=payload,
+                timeout=timeout,
                 allow_status=(201, 202),
             )
         except APIError as exc:

@@ -62,3 +62,43 @@ def test_monitor_fails_when_repositories_remain_pending(tmp_path, monkeypatch) -
     exit_code = cli.cmd_monitor(argparse.Namespace(interval=1), config)
 
     assert exit_code == 1
+
+
+def test_migrate_passes_metadata_switch_and_wait_time(tmp_path, monkeypatch) -> None:
+    """Migrate hands the metadata switch and max_wait_time to every Forgejo request."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "example", "private": False}])
+    calls: list[dict] = []
+
+    class FakeForgejoClient:
+        """Forgejo test double that records migrate requests."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def organization_id(self, _org_name: str) -> int:
+            """Return a fixed organization id."""
+            return 3
+
+        def migrate_repository(self, **kwargs) -> int:
+            """Record the request and report a finished import."""
+            calls.append(kwargs)
+            return 11
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    config = AppConfig(
+        github_org="source",
+        github_token="github-token",
+        forgejo_url="https://forge.example",
+        forgejo_org="target",
+        forgejo_token="forgejo-token",
+        max_wait_time=5400,
+        output_dir=str(tmp_path),
+        migrate_metadata=False,
+    )
+
+    assert cli.cmd_migrate(argparse.Namespace(), config) == 0
+    assert calls[0]["metadata"] is False
+    assert calls[0]["timeout"] == 5400
