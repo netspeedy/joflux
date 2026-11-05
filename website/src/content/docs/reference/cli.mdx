@@ -44,7 +44,7 @@ required, and running `joflux` on its own prints usage.
 | Command | What it does | Reads | Writes |
 | --- | --- | --- | --- |
 | [`export`](/joflux/stages/export/) | Lists the GitHub organization's repositories | GitHub | `repos-inventory.json` |
-| [`migrate`](/joflux/stages/migrate/) | Starts one Forgejo migration per repository | `repos-inventory.json` | `migration-log.json` |
+| [`migrate`](/joflux/stages/migrate/) | Asks Forgejo to migrate each repository | `repos-inventory.json` | `migration-log.json` |
 | [`monitor`](/joflux/stages/monitor/) | Waits for started migrations to arrive | `migration-log.json`, `migration-status.json` | `migration-status.json` |
 | [`verify`](/joflux/stages/verify/) | Checks each repository on the target and counts its contents | `repos-inventory.json` | `verification-report.json` |
 | [`archive`](/joflux/stages/archive/) | Archives the GitHub originals | `repos-inventory.json` | `archive-log.json` |

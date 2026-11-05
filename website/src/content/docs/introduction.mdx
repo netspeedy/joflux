@@ -7,9 +7,9 @@ import { Steps } from "@astrojs/starlight/components";
 import NextSteps from "../../components/NextSteps.astro";
 
 joflux moves the repositories of a GitHub organization into a Forgejo-compatible instance such as
-Codeberg. It exports an inventory of the organization, starts a Forgejo migration for every
-repository in it, waits for them to finish, checks what arrived, and archives the GitHub originals
-once you're happy with the result.
+Codeberg. It exports an inventory of the organization, has Forgejo migrate every repository in
+it, confirms they arrived, checks what came across, and archives the GitHub originals once you're
+happy with the result.
 
 Each of those steps is its own command, and each one writes what it did as JSON in
 `migration_output/`. You can read exactly what happened, re-run a stage, and keep the files as the
@@ -29,8 +29,8 @@ originals rather than removing them.
 1. `export` reads the organization from GitHub and saves the list as
    `repos-inventory.json`. Nothing changes on either side, so it's the safe first step.
 
-2. `migrate` reads that inventory and asks Forgejo to start one migration per repository, logging
-   each request in `migration-log.json`.
+2. `migrate` reads that inventory and asks Forgejo to migrate each repository, logging each
+   request in `migration-log.json`.
 
 3. `monitor` polls the target until every started migration has arrived, failed or run out of
    time, and records each result in `migration-status.json`.

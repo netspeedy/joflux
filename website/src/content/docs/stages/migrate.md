@@ -1,10 +1,10 @@
 ---
 title: Migrate
-description: migrate resolves the target organization and asks Forgejo to start one migration per repository in the inventory.
+description: migrate resolves the target organization and asks Forgejo to migrate each repository in the inventory, one at a time.
 ---
 
 `migrate` reads `repos-inventory.json`, resolves the target Forgejo organization, and asks Forgejo
-to start one migration for each repository in the inventory. It takes no flags.
+to migrate each repository in the inventory, one at a time. It takes no flags.
 
 ```bash
 joflux --config joflux.toml migrate
@@ -41,8 +41,9 @@ back is logged. [Output files](/joflux/reference/output-files/) has every field.
 
 ## Before you monitor
 
-Starting a migration isn't the same as finishing one: Forgejo does the import in the background.
-Run [`monitor`](/joflux/stages/monitor/) next to wait for the repositories to arrive.
+Forgejo answers a migration request once it has finished importing that repository, so by the
+time `migrate` logs a repository as `initiated`, its import is normally done. Run
+[`monitor`](/joflux/stages/monitor/) next to confirm that each one is on the target.
 
 Running `migrate` a second time sends a new request for every repository in the inventory,
 including ones that already arrived, so only re-run it with an inventory that lists what's left.
