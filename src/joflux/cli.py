@@ -365,28 +365,34 @@ def _verification_details(metadata: dict[str, Any]) -> str:
     )
 
 
+def _latest_entries(events: list[Any]) -> dict[str, dict[str, Any]]:
+    """Return each repository's last entry from an append-only log's events.
+
+    joflux only ever appends to its logs, so the last entry for a repository is its latest; the
+    order in the file is the rule, not the timestamps. Entries without a string repo and status
+    are ignored.
+    """
+    latest: dict[str, dict[str, Any]] = {}
+    for event in events:
+        if (
+            isinstance(event, dict)
+            and isinstance(event.get("repo"), str)
+            and isinstance(event.get("status"), str)
+        ):
+            latest[event["repo"]] = event
+    return latest
+
+
 def _latest_statuses(path: Path) -> dict[str, str]:
     """Return each repository's status from its last entry in an append-only JSON log."""
     events = MigrationState.load_json(path)
     if not isinstance(events, list):
         raise ValueError(f"{path} must contain a JSON array")
-
-    latest: dict[str, str] = {}
-    for event in events:
-        if not isinstance(event, dict):
-            continue
-        repo_name = event.get("repo")
-        status = event.get("status")
-        if isinstance(repo_name, str) and isinstance(status, str):
-            latest[repo_name] = status
-    return latest
+    return {repo_name: event["status"] for repo_name, event in _latest_entries(events).items()}
 
 
 def _latest_migration_statuses(state: MigrationState) -> dict[str, str]:
-    """Return each repository's latest migration-log status.
-
-    The log is append-only, so the latest entry for a repository is the last one in the file.
-    """
+    """Return each repository's latest migration-log status."""
     if not state.migration_log.exists():
         return {}
     return _latest_statuses(state.migration_log)
@@ -395,33 +401,24 @@ def _latest_migration_statuses(state: MigrationState) -> dict[str, str]:
 def _pending_migration_repos(
     migration_events: list[dict[str, Any]], status_events: list[dict[str, Any]]
 ) -> list[str]:
-    latest_migrations: dict[str, tuple[str, str]] = {}
-    for event in migration_events:
-        repo_name = event.get("repo")
-        status = event.get("status")
-        if not isinstance(repo_name, str) or not isinstance(status, str):
-            continue
-        latest_migrations[repo_name] = (status, _event_timestamp(event))
+    """Return the repositories whose latest migration entry is initiated and still unsettled.
 
-    latest_statuses: dict[str, tuple[str, str]] = {}
-    for event in status_events:
-        repo_name = event.get("repo")
-        status = event.get("status")
-        if not isinstance(repo_name, str) or not isinstance(status, str):
-            continue
-        latest_statuses[repo_name] = (status, _event_timestamp(event))
-
+    Each file's latest entry per repository comes from _latest_entries. The timestamps only order
+    the two files against each other, which share no order of their own: a completed or error
+    status settles a migration unless the migration entry is newer, as it is when migrate has run
+    again since.
+    """
+    latest_statuses = _latest_entries(status_events)
     pending: list[str] = []
-    for repo_name, (migration_status, migration_time) in latest_migrations.items():
-        if migration_status != "initiated":
+    for repo_name, migration in _latest_entries(migration_events).items():
+        if migration["status"] != "initiated":
             continue
 
         status = latest_statuses.get(repo_name)
-        if status is not None:
-            status_name, status_time = status
-            if status_name in {"completed", "error"} and (
-                not migration_time or not status_time or status_time >= migration_time
-            ):
+        if status is not None and status["status"] in {"completed", "error"}:
+            migration_time = _event_timestamp(migration)
+            status_time = _event_timestamp(status)
+            if not migration_time or not status_time or status_time >= migration_time:
                 continue
 
         pending.append(repo_name)

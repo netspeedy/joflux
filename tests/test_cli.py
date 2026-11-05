@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from joflux import cli, http
-from joflux.cli import _pending_migration_repos, main
+from joflux.cli import _latest_entries, _latest_statuses, _pending_migration_repos, main
 from joflux.config import AppConfig
 from joflux.forgejo import MigrationResult
 from joflux.state import MigrationState
@@ -585,3 +585,36 @@ def test_verify_details_say_when_a_unit_is_off(tmp_path, monkeypatch) -> None:
     assert state.load_json(state.verify_file)[0]["details"] == (
         "size:1 issues:off pulls:off labels:4 releases:5 wiki:no"
     )
+
+
+def test_latest_means_the_last_entry_in_the_file_everywhere(tmp_path) -> None:
+    """Every reader of a log takes a repository's last entry, whatever its timestamp says."""
+    migration_events = [
+        {"repo": "a", "status": "initiated", "timestamp": "2026-01-01T10:00:00+00:00"},
+        {"repo": "b", "status": "completed", "timestamp": "2026-01-01T10:00:00+00:00"},
+        {"repo": "c", "status": "initiated", "timestamp": "2026-01-01T10:00:00+00:00"},
+        {"repo": "d", "status": "initiated", "timestamp": "2026-01-01T10:00:00+00:00"},
+        # A clock that went backwards doesn't reorder the file.
+        {"repo": "a", "status": "completed", "timestamp": "2026-01-01T09:00:00+00:00"},
+        {"repo": "b", "status": "initiated", "timestamp": "2026-01-01T09:00:00+00:00"},
+        {"repo": "broken"},
+    ]
+    status_events = [
+        # Older than c's migration entry, so it doesn't settle c.
+        {"repo": "c", "status": "error", "checked_at": "2026-01-01T09:59:00+00:00"},
+        # Newer than d's, so it does.
+        {"repo": "d", "status": "completed", "checked_at": "2026-01-01T10:01:00+00:00"},
+    ]
+    log = tmp_path / "migration-log.json"
+    log.write_text(json.dumps(migration_events), encoding="utf-8")
+
+    latest = _latest_entries(migration_events)
+    assert {repo: event["status"] for repo, event in latest.items()} == {
+        "a": "completed",
+        "b": "initiated",
+        "c": "initiated",
+        "d": "initiated",
+    }
+    assert latest["a"]["timestamp"] == "2026-01-01T09:00:00+00:00"
+    assert _latest_statuses(log) == {repo: event["status"] for repo, event in latest.items()}
+    assert _pending_migration_repos(migration_events, status_events) == ["b", "c"]
