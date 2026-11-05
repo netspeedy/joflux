@@ -618,3 +618,40 @@ def test_latest_means_the_last_entry_in_the_file_everywhere(tmp_path) -> None:
     assert latest["a"]["timestamp"] == "2026-01-01T09:00:00+00:00"
     assert _latest_statuses(log) == {repo: event["status"] for repo, event in latest.items()}
     assert _pending_migration_repos(migration_events, status_events) == ["b", "c"]
+
+
+@pytest.mark.parametrize(
+    ("api_url", "clone_url"),
+    [
+        ("https://api.github.com", "https://github.com/source/bare.git"),
+        ("https://ghe.example.com/api/v3", "https://ghe.example.com/source/bare.git"),
+    ],
+)
+def test_migrate_falls_back_to_a_clone_url_on_the_configured_host(
+    tmp_path, monkeypatch, api_url: str, clone_url: str
+) -> None:
+    """An inventory entry without a clone URL is cloned from the GitHub the config points at."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "bare"}])
+    requested: list[str] = []
+
+    class FakeForgejoClient:
+        """Forgejo test double that records the clone URL it's asked for."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def organization_id(self, _org_name: str) -> int:
+            """Return a fixed organization id."""
+            return 3
+
+        def migrate_repository(self, **kwargs) -> MigrationResult:
+            """Record the clone URL and report a finished import."""
+            requested.append(kwargs["clone_url"])
+            return MigrationResult("completed", 9, "Forgejo finished the import")
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    assert cli.cmd_migrate(argparse.Namespace(), _config(tmp_path, github_api_url=api_url)) == 0
+    assert requested == [clone_url]

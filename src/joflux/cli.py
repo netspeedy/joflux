@@ -151,7 +151,8 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
             continue
 
         clone_url = str(
-            repo.get("clone_url") or f"https://github.com/{config.github_org}/{repo_name}.git"
+            repo.get("clone_url")
+            or f"https://{web_location(config.github_api_url, config.github_org)}/{repo_name}.git"
         )
         description = str(repo.get("description") or "Migrated from GitHub by joflux")
 
