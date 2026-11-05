@@ -106,6 +106,8 @@ def test_migrate_passes_metadata_switch_and_wait_time(tmp_path, monkeypatch) -> 
     assert cli.cmd_migrate(argparse.Namespace(), config) == 0
     assert calls[0]["metadata"] is False
     assert calls[0]["timeout"] == 5400
+    assert calls[0]["owner"] == "target"
+    assert "auth_username" not in calls[0]
 
 
 def _config(tmp_path, **overrides) -> AppConfig:

@@ -53,10 +53,9 @@ class ForgejoClient:
         self,
         clone_url: str,
         repo_name: str,
-        org_id: int,
+        owner: str,
         private: bool,
         auth_token: str,
-        auth_username: str,
         description: str,
         metadata: bool = True,
         timeout: int = 30,
@@ -69,16 +68,18 @@ class ForgejoClient:
         Forgejo runs the whole import before it answers, and its 201 response is the
         only signal the API gives that an import has finished. ``timeout`` therefore
         has to cover the import itself.
+
+        ``owner`` is the target organization's name, which MigrateRepoOptions takes as
+        repo_owner. Forgejo clones and reads GitHub with ``auth_token`` alone, so no
+        username is sent.
         """
         payload = {
             "clone_addr": clone_url,
             "repo_name": repo_name,
-            "uid": org_id,
-            "repo_owner_id": org_id,
+            "repo_owner": owner,
             "private": private,
             "service": "github",
             "auth_token": auth_token,
-            "auth_username": auth_username,
             "mirror": False,
             "description": description,
             "wiki": metadata,
