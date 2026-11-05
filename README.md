@@ -90,7 +90,7 @@ joflux --config joflux.toml archive
 | `export` | Lists every repository in the GitHub organization | `repos-inventory.json` |
 | `migrate` | Resolves the target organization and runs one Forgejo migration per repository, waiting for each to finish | `migration-log.json` |
 | `monitor` | Rechecks any migration Forgejo didn't answer for while `migrate` was waiting | `migration-status.json` |
-| `verify` | Checks each target repository and records its size and issue, pull request, label and release counts | `verification-report.json` |
+| `verify` | Checks each target repository and records its size, its issue, pull request, label and release counts, and whether it has a wiki | `verification-report.json` |
 | `archive` | Archives the GitHub originals | `archive-log.json` |
 
 `migrate` copies each repository as a normal repository rather than a mirror and

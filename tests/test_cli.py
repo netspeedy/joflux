@@ -183,3 +183,37 @@ def test_monitor_does_not_call_an_unanswered_import_complete(tmp_path, monkeypat
     assert exit_code == 1
     assert [(event["repo"], event["status"]) for event in statuses] == [("slow", "unconfirmed")]
     assert _pending_migration_repos(state.load_json(state.migration_log), statuses) == ["slow"]
+
+
+def test_verify_records_whether_each_wiki_arrived(tmp_path, monkeypatch) -> None:
+    """The wiki check lands in the verification report next to the counts."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "with-wiki"}, {"name": "without-wiki"}])
+
+    class FakeForgejoClient:
+        """Forgejo test double with one repository that has a wiki."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def repository_metadata(self, _org_name: str, repo_name: str) -> dict:
+            """Return verified counts, with a wiki only for with-wiki."""
+            return {
+                "name": repo_name,
+                "size": 1,
+                "issues": 2,
+                "pulls": 3,
+                "labels": 4,
+                "releases": 5,
+                "wiki": repo_name == "with-wiki",
+                "status": "verified",
+            }
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+
+    assert cli.cmd_verify(argparse.Namespace(), _config(tmp_path)) == 0
+    details = [event["details"] for event in state.load_json(state.verify_file)]
+    assert details == [
+        "size:1 issues:2 pulls:3 labels:4 releases:5 wiki:yes",
+        "size:1 issues:2 pulls:3 labels:4 releases:5 wiki:no",
+    ]

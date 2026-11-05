@@ -20,7 +20,7 @@ joflux --config joflux.toml archive
 | [`export`](/joflux/stages/export/) | Lists every repository in the GitHub organization | `repos-inventory.json` |
 | [`migrate`](/joflux/stages/migrate/) | Resolves the target organization and has Forgejo migrate each repository, waiting for each to finish | `migration-log.json` |
 | [`monitor`](/joflux/stages/monitor/) | Rechecks any migration Forgejo didn't answer for while `migrate` was waiting | `migration-status.json` |
-| [`verify`](/joflux/stages/verify/) | Checks each target repository and records its size and issue, pull request, label and release counts | `verification-report.json` |
+| [`verify`](/joflux/stages/verify/) | Checks each target repository and records its size, its issue, pull request, label and release counts, and whether it has a wiki | `verification-report.json` |
 | [`archive`](/joflux/stages/archive/) | Archives the GitHub originals | `archive-log.json` |
 
 Every file goes in the output directory, `migration_output/` unless the config sets `output_dir`.

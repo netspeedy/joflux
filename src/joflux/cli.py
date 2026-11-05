@@ -297,7 +297,8 @@ def _verification_details(metadata: dict[str, Any]) -> str:
         f"issues:{metadata.get('issues', 0)} "
         f"pulls:{metadata.get('pulls', 0)} "
         f"labels:{metadata.get('labels', 0)} "
-        f"releases:{metadata.get('releases', 0)}"
+        f"releases:{metadata.get('releases', 0)} "
+        f"wiki:{'yes' if metadata.get('wiki') else 'no'}"
     )
 
 

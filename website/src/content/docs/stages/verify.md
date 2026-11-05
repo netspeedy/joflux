@@ -1,6 +1,6 @@
 ---
 title: Verify
-description: verify checks every repository in the inventory on the target and records its size and issue, pull request, label and release counts.
+description: verify checks every repository in the inventory on the target and records its size, its issue, pull request, label and release counts, and whether it has a wiki.
 ---
 
 `verify` checks that every repository in the inventory is on the target, and records what each one
@@ -16,13 +16,18 @@ you exported, whatever happened to its migration request.
 ## What it records
 
 For each repository it reads the target repository and counts its issues, pull requests, labels
-and releases, paging through all of them, open and closed. Issues and pull requests are counted
-separately, so the issue count doesn't include pull requests. A repository it can read is recorded
-as `verified`, with details in the shape:
+and releases, paging through all of them, open and closed, and checks whether it has a wiki. Issues
+and pull requests are counted separately, so the issue count doesn't include pull requests. A
+repository it can read is recorded as `verified`, with details in the shape:
 
 ```text
-size:<size> issues:<n> pulls:<n> labels:<n> releases:<n>
+size:<size> issues:<n> pulls:<n> labels:<n> releases:<n> wiki:<yes|no>
 ```
+
+`wiki` is `yes` when the target repository has a wiki, which for a freshly migrated repository
+means Forgejo imported one; a wiki someone created on the target afterwards counts too. It's `no`
+when there was nothing to import, as with a GitHub repository whose wiki tab is on but has no
+pages, and always `no` with `metadata = false`.
 
 The size is the one the target reports. The counts are of what Forgejo imported, so with
 `metadata = false` in the config they're all zero. If the repository can't be read, or one of the
