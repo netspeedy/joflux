@@ -39,9 +39,10 @@ request went unanswered and that haven't been settled since, so stopping it and 
 picks up where it left off. `verify` checks every repository in the inventory each time, which
 makes it safe to repeat once stragglers have arrived.
 
-`archive` acts on every verified repository in the inventory each time it runs. `migrate` skips the
-repositories whose migration already completed and sends a new request for the rest, so running it
-again retries what didn't finish.
+`archive` skips the repositories it already archived, and ones that were archived on GitHub when you
+exported, and archives the other verified ones. `migrate` skips the repositories whose migration
+already completed and sends a new request for the rest, so running it again retries what didn't
+finish.
 
 ## Exit codes
 
