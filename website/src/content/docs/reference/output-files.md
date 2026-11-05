@@ -10,7 +10,7 @@ sorted keys.
 | File | Written by | Read by |
 | --- | --- | --- |
 | `repos-inventory.json` | `export` | `migrate`, `verify`, `archive` |
-| `migration-log.json` | `migrate` | `monitor` |
+| `migration-log.json` | `migrate` | `migrate`, `monitor` |
 | `migration-status.json` | `monitor` | `monitor` |
 | `verification-report.json` | `verify` | `archive` |
 | `archive-log.json` | `archive` | `archive` |

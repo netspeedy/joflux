@@ -58,9 +58,9 @@ that includes them.
 ## Try an export first
 
 `export` only reads from GitHub, so run it on its own and read
-`migration_output/repos-inventory.json`. Everything in it will be migrated and, at the end,
-archived. Drop forks or repositories that are already archived with `--exclude-forks` and
-`--exclude-archived` if they shouldn't move.
+`migration_output/repos-inventory.json`. Everything in it will be migrated, and at the end
+`archive` archives each one that `verify` recorded as verified. Drop forks or repositories that are
+already archived with `--exclude-forks` and `--exclude-archived` if they shouldn't move.
 
 ## Keep the output directory
 
