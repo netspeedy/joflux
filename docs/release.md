@@ -17,6 +17,10 @@ next version:
 - `fix:`, `deps:`, `build:`, `packaging:`, and `release:` create a patch release.
 - `!` or `BREAKING CHANGE:` creates a major release.
 
+Dependabot titles its pip updates `deps:`, since they change what ships, and the
+website's npm updates `chore:`, so a docs-site dependency bump doesn't cut a
+release.
+
 The release workflow publishes an `-rc` tag first, waits for release assets to
 build, and then promotes the same commit to a stable tag.
 

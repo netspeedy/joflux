@@ -46,4 +46,5 @@ its own path, and never copy pages into per-version folders.
 Deploy Pages Site runs on every push to `main`, when a release is published and
 after each Release Assets run. It writes the latest release's details to a JSON
 file, builds the site with it, runs `make website-check` over the result and
-deploys it. Dependabot checks the npm dependencies here daily.
+deploys it. Dependabot checks the npm dependencies here daily and titles its pull
+requests `chore:`, so a site update doesn't cut a release.
