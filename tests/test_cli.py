@@ -457,3 +457,24 @@ output_dir = "{tmp_path}"
     assert main(["--config", str(config_path), "archive", "--yes"]) == 2
     assert not _FakeGitHubClient.archived
     assert "verification report not found; run verify first" in caplog.text
+
+
+def test_archive_prompt_names_the_enterprise_server(tmp_path, monkeypatch) -> None:
+    """With github.api_url on a GitHub Enterprise Server, the prompt names that server."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "ok"}])
+    state.log_verification("ok", "verified", "size:1")
+    prompts: list[str] = []
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return "no"
+
+    monkeypatch.setattr(cli, "GitHubClient", _FakeGitHubClient)
+    monkeypatch.setattr(_FakeGitHubClient, "archived", [])
+    monkeypatch.setattr("builtins.input", fake_input)
+
+    config = _config(tmp_path, github_api_url="https://ghe.example.com/api/v3")
+    assert cli.cmd_archive(argparse.Namespace(yes=False), config) == 0
+    assert prompts == ["Archive 1 repositories in ghe.example.com/source? Type yes: "]
+    assert not _FakeGitHubClient.archived

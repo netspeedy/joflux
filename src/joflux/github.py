@@ -4,8 +4,26 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import urlsplit
 
 from .http import request_json
+
+
+def web_location(api_url: str, org: str) -> str:
+    """Return where an organization lives on the web, such as github.com/acme, for messages.
+
+    GitHub's API is at api.github.com, GitHub Enterprise Cloud with data residency at
+    api.<subdomain>.ghe.com, and GitHub Enterprise Server at <host>/api/v3. Dropping the api.
+    host prefix and the /api/v3 path gives the address people know the organization by.
+    """
+    parts = urlsplit(api_url.strip().rstrip("/"))
+    host = parts.netloc or parts.path
+    path = parts.path if parts.netloc else ""
+    if host.startswith("api."):
+        host = host[len("api.") :]
+    if path.endswith("/api/v3"):
+        path = path[: -len("/api/v3")]
+    return f"{host}{path}/{org}"
 
 
 class GitHubClient:

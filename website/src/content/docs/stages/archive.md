@@ -19,6 +19,9 @@ Before touching anything it prompts with the number it's about to archive:
 Archive <count> repositories in github.com/<org>? Type yes:
 ```
 
+With `api_url` under `[github]` set for GitHub Enterprise Server, the prompt names your server
+instead, taken from that address: `https://ghe.example.com/api/v3` gives `ghe.example.com/<org>`.
+
 Anything other than `yes` (in any case) cancels it with `Archive cancelled`, and it exits 0 having
 changed nothing. `--yes` skips the prompt, for scripted runs:
 
