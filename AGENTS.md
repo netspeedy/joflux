@@ -42,9 +42,11 @@
   `src/lib/sections.ts` and the mark's colour in `theme.css`. Keep it that
   way, so a change to a shared file can be copied between the sites as it is.
 - The docs are versioned by release line. Only the latest line lives in
-  `website/src/content/docs`; never copy pages into per-version folders. Keep
-  page links root-relative (`/joflux/...`), so an archived build of a line can
-  rewrite them into its own path.
+  `website/src/content/docs`; never copy pages into per-version folders. When a
+  new minor ships, the release workflow rebuilds the outgoing line from git with
+  `SITE_ARCHIVE=vX.Y`, which serves it under `/joflux/vX.Y/`, and the Pages
+  workflow publishes it beside the latest. Keep page links root-relative
+  (`/joflux/...`): archived builds rewrite them into their own line.
 - Keep the website out of `.github/`. Dependabot stopped being able to open npm
   pull requests for manifests under `.github/` in June 2026 (its create-PR call
   is rejected as "invalid or unauthorized changes"), which is why it lives at

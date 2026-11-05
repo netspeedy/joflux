@@ -37,14 +37,18 @@ banner, so edit `scripts/readme/build_readme_hero.py` rather than the files.
 
 ## Versioned docs
 
-Only the latest release line's pages live here. Keep page links root-relative
-(`/joflux/...`), so an older line built under `/joflux/vX.Y/` can rewrite them into
-its own path, and never copy pages into per-version folders.
+Only the latest release line's pages live here. When a new minor ships, the Release
+Assets workflow rebuilds the outgoing line from git with `SITE_ARCHIVE=vX.Y`, and
+the Pages workflow publishes it under `/joflux/vX.Y/` beside the latest. Never copy
+pages into per-version folders, and keep page links root-relative (`/joflux/...`) so
+archived builds can rewrite them. The "Versioned docs" section of
+[docs/release.md](../docs/release.md#versioned-docs) has the details, including how
+to rebuild an archive by hand.
 
 ## How it's published
 
 Deploy Pages Site runs on every push to `main`, when a release is published and
 after each Release Assets run. It writes the latest release's details to a JSON
-file, builds the site with it, runs `make website-check` over the result and
-deploys it. Dependabot checks the npm dependencies here daily and titles its pull
+file, builds the latest line with it, unpacks the archived lines into it, runs
+`make website-check` over the result and deploys it. Dependabot checks the npm dependencies here daily and titles its pull
 requests `chore:`, so a site update doesn't cut a release.
