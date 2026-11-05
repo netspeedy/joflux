@@ -68,6 +68,43 @@ to the site in `SITE_METADATA_FILE`, so the published pages name the real
 release and link to its notes. Local and pull request builds fall back to the
 newest local tag. The same JSON is still published as `website-metadata.json`.
 
+### Versioned docs
+
+The docs are versioned by release line. The latest line is built at the site
+root, and each older line is served under its own path, such as
+`https://netspeedy.github.io/joflux/v0.1/`. The version menu in the header lists
+them, and an older line's pages open with a notice that links to the same page
+in the latest docs.
+
+Only the latest line is kept in the repository. When the first release of a new
+line is published, such as `v0.2.0`, the Release Assets workflow finds the
+commit just before the new line started
+(`scripts/release/docs-archive-commit.sh`, which uses the same `feat:` and
+breaking-change rules as `next-release.sh`), builds the site from it with
+`SITE_ARCHIVE` set to the old line, and attaches the result to the old line's
+last release as `joflux-docs-<line>.tar.gz`. The Pages workflow unpacks every
+such archive into the site before `make website-check`, lists them in
+`versions.json` at the root, and archived lines read that file when they load,
+so their menus include lines released after them. A failed archive doesn't fail
+the release: the job reports it in its summary and leaves the line unpublished.
+
+v0.1 is the first line that gets an archive, when v0.2.0 ships. A line whose
+last commit predates the Starlight site is skipped, because it can't build
+under a line's own path.
+
+To build an archived line by hand, for example to replace a lost archive, check
+out the commit the script prints and build it with the line set. The
+docs-archive job in `.github/workflows/release-assets.yml` shows how it writes
+the `SITE_METADATA_FILE` the pages read their release from.
+
+```bash
+git checkout "$(bash scripts/release/docs-archive-commit.sh v0.1.4 v0.2.0)"
+SITE_ARCHIVE=v0.1 make website-build
+SITE_ARCHIVE=v0.1 make website-check
+tar -C website/dist -czf joflux-docs-v0.1.tar.gz .
+gh release upload v0.1.4 joflux-docs-v0.1.tar.gz --clobber
+```
+
 `test_cli_reference_covers_every_flag` in `tests/test_docs.py` fails when an
 option is added to or removed from the CLI without updating
 `website/src/content/docs/reference/cli.mdx`.
