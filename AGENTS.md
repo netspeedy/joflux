@@ -125,10 +125,13 @@
   never make it run as part of another stage.
 - `feat:`, `fix:`, `perf:`, `revert:`, `deps:`, `build:`, `packaging:` and
   `release:` commits cut releases (`scripts/release/next-release.sh` decides);
-  `docs:`, `ci:`, `chore:` and `test:` don't. While release-bearing
-  commits are waiting for a stable release, every validated push to `main`
-  tags the next release candidate, docs-only pushes included. That's expected.
-  `docs/release.md` describes the release flow.
+  `docs:`, `ci:`, `chore:` and `test:` don't. Every release-bearing push
+  to `main` cuts a release candidate. Updates from Dependabot, Renovate and
+  this repository's workflows are then promoted to stable on their own; a
+  release-bearing change a person merged waits at the candidate until someone
+  runs `Promote Release Candidate`. While that's waiting, every validated push
+  to `main` tags the next candidate, docs-only pushes included. That's
+  expected. `docs/release.md` describes the release flow.
 
 ## Testing Expectations
 

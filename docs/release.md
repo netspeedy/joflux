@@ -21,8 +21,13 @@ Dependabot titles its pip updates `deps:`, since they change what ships, and the
 website's npm updates `chore:`, so a docs-site dependency bump doesn't cut a
 release.
 
-The release workflow publishes an `-rc` tag first, waits for release assets to
-build, and then promotes the same commit to a stable tag.
+The release workflow publishes an `-rc` tag first and waits for release assets
+to build. If every release-bearing commit since the last stable release came
+from Dependabot, Renovate or this repository's own workflows, it then promotes
+the same commit to a stable tag, which publishes the Homebrew formula. If any
+came from a person, it stops at the candidate, and someone promotes it with the
+`Promote Release Candidate` workflow when it's ready;
+`scripts/release/automated-only.sh` makes that call.
 
 ## Website
 
