@@ -1,0 +1,139 @@
+// Release details for the pages, read once at build time.
+//
+// The Pages workflow resolves the latest release before it builds the site, writes it to a JSON
+// file and passes its path in SITE_METADATA_FILE. Local and pull request builds don't have that
+// file, so they fall back to the newest local tag.
+//
+// The docs are versioned by release line (v0.8, v0.9 and so on). The latest line is built at the
+// site root. When a newer line ships, the release workflow builds the old one again with
+// SITE_ARCHIVE set to its line, which moves it under the root as /joflux/v0.8/, and the Pages
+// workflow puts each archived line back beside the latest one and lists them in docs_versions.
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+
+/** The product the site documents, for the header, the footer and the share card. */
+export const product = {
+  name: "joflux",
+  description:
+    "Moves a GitHub organization's repositories into Forgejo or Codeberg in five stages, each " +
+    "leaving JSON you can inspect.",
+};
+
+export const links = {
+  org: "https://github.com/netspeedy",
+  repo: "https://github.com/netspeedy/joflux",
+  releases: "https://github.com/netspeedy/joflux/releases",
+  issues: "https://github.com/netspeedy/joflux/issues",
+  homebrew: "https://github.com/netspeedy/homebrew-joflux",
+  example: "https://github.com/netspeedy/joflux/blob/main/joflux.toml.example",
+  siteUrl: "https://netspeedy.github.io/joflux/",
+};
+
+export interface Release {
+  /** The release tag, such as v0.8.38, or "dev" when no tag is known. */
+  version: string;
+  /** True when version is a real tag rather than the "dev" placeholder. */
+  tagged: boolean;
+  /** The release page, or the releases list when there's no tag. */
+  url: string;
+}
+
+interface Metadata {
+  latest_release?: { tag_name?: string; html_url?: string } | null;
+  /** The archived release lines published beside this build, each with its newest release. */
+  docs_versions?: { version: string; release: string }[];
+}
+
+function readMetadata(): Metadata | undefined {
+  const file = process.env.SITE_METADATA_FILE;
+  if (!file) return undefined;
+  if (!existsSync(file)) throw new Error(`SITE_METADATA_FILE points at ${file}, which doesn't exist`);
+  return JSON.parse(readFileSync(file, "utf8")) as Metadata;
+}
+
+function latestTag(): string | undefined {
+  try {
+    const tag = execFileSync("git", ["describe", "--tags", "--abbrev=0", "--match", "v*"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return tag || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const metadata = readMetadata();
+
+function resolveRelease(): Release {
+  const latest = metadata?.latest_release ?? undefined;
+  const tag = latest?.tag_name || latestTag();
+  return {
+    version: tag ?? "dev",
+    tagged: Boolean(tag),
+    url: latest?.html_url || (tag ? `${links.releases}/tag/${tag}` : links.releases),
+  };
+}
+
+export const release = resolveRelease();
+
+/** The release line a version belongs to: v0.8.38 is in v0.8. */
+export const lineOf = (version: string) => /^v\d+\.\d+/.exec(version)?.[0];
+
+export interface DocsVersion {
+  /** The release line, such as v0.8, or "dev" for an untagged build. */
+  version: string;
+  /** The line's newest release, such as v0.8.38. */
+  release: string;
+  /** Where the line's docs start, such as /joflux/v0.8/. */
+  url: string;
+  /** The newest release's notes. */
+  notes: string;
+  latest: boolean;
+}
+
+const archive = process.env.SITE_ARCHIVE || undefined;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+
+/** The site root every line lives under, /joflux/, also in an archived build. */
+export const siteRoot = archive ? base.slice(0, base.length - archive.length - 1) : base;
+
+/**
+ * A link from the root, such as /joflux/quickstart/, as a link to that page in the line being
+ * built. In the latest line it's unchanged. rehype-archive-links.mjs does the same for the pages.
+ */
+export const docsHref = (href: string) =>
+  archive && href.startsWith(siteRoot) && !/^v\d+\.\d+\//.test(href.slice(siteRoot.length))
+    ? base + href.slice(siteRoot.length)
+    : href;
+
+function resolveDocs() {
+  const current = archive ?? lineOf(release.version) ?? "dev";
+  const self: DocsVersion = {
+    version: current,
+    release: release.version,
+    url: base,
+    notes: release.url,
+    latest: !archive,
+  };
+  // An archived build only knows itself. Its version menu fetches the full list from the root's
+  // versions.json, and this link to the latest docs stands in until it does.
+  if (archive) {
+    const latest: DocsVersion = { version: "Latest", release: "", url: siteRoot, notes: links.releases, latest: true };
+    return { current, archived: true, versions: [latest, self] };
+  }
+  const older = (metadata?.docs_versions ?? [])
+    .filter(({ version }) => version !== current)
+    .sort((a, b) => b.version.localeCompare(a.version, "en", { numeric: true }))
+    .map(({ version, release: tag }) => ({
+      version,
+      release: tag,
+      url: `${siteRoot}${version}/`,
+      notes: `${links.releases}/tag/${tag}`,
+      latest: false,
+    }));
+  return { current, archived: false, versions: [self, ...older] };
+}
+
+/** Which line these docs are, whether it's an archived one, and every line published. */
+export const docs = resolveDocs();

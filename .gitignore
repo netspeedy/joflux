@@ -14,7 +14,9 @@ joflux.toml
 config.yaml
 migration_output/
 *.log
+website/.astro/
 website/.captures/
 website/dist/
+website/.test/
 website/node_modules/
 .DS_Store

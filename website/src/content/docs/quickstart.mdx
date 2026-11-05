@@ -1,0 +1,129 @@
+---
+title: Quickstart
+description: Install joflux, set both organizations, export the inventory, then run the remaining stages in order.
+---
+
+import { Steps } from "@astrojs/starlight/components";
+import InstallTabs from "../../components/InstallTabs.astro";
+import NextSteps from "../../components/NextSteps.astro";
+
+## Install
+
+<InstallTabs />
+
+Check it's on your path:
+
+```bash
+joflux --version
+```
+
+## Point it at both organizations
+
+Copy the example config from the repository and set the GitHub organization you're moving from and
+the Forgejo organization you're moving to:
+
+```bash
+cp joflux.toml.example joflux.toml
+```
+
+```toml title="joflux.toml"
+[github]
+org = "my-github-org"
+
+[forgejo]
+url = "https://codeberg.org"
+org = "my-forgejo-org"
+
+[migration]
+poll_interval = 30
+max_wait_time = 3600
+log_level = "INFO"
+output_dir = "migration_output"
+```
+
+Create the target organization on Forgejo before you go further; `migrate` won't create it for
+you. Then put both tokens in the environment rather than in the file:
+
+```bash
+export JOFLUX_GITHUB_TOKEN="ghp_your_github_token"
+export JOFLUX_FORGEJO_TOKEN="your_forgejo_token"
+```
+
+[Before you migrate](/joflux/guides/before-you-migrate/) covers what each token needs to be able
+to do.
+
+## Export the inventory
+
+`export` only reads from GitHub, so it's the safe first step:
+
+```bash
+joflux --config joflux.toml export
+```
+
+It lists the organization and saves the inventory:
+
+```text title="Output"
+02:39:52 - INFO - Fetching repositories from GitHub org: my-github-org
+02:39:52 - INFO - Found 14 repositories
+02:39:52 - INFO - Inventory saved: migration_output/repos-inventory.json
+02:39:52 - INFO - Exported 14 repositories (3 private, 1 forks, 1 archived)
+```
+
+Read `migration_output/repos-inventory.json` before going any further, because it's the list every
+later stage works from. If forks or repositories that are already archived shouldn't move, export
+again with a filter:
+
+```bash
+joflux --config joflux.toml export --exclude-forks --exclude-archived
+```
+
+## Run the rest
+
+When the inventory is right, run the remaining stages in order, all with the same config:
+
+<Steps>
+
+1. Start the migrations:
+
+   ```bash
+   joflux --config joflux.toml migrate
+   ```
+
+2. Wait for them to arrive. You can stop `monitor` and run it again; it only checks repositories
+   that haven't finished.
+
+   ```bash
+   joflux --config joflux.toml monitor
+   ```
+
+3. Check what arrived. `verify` exits with code 1 and names any repository that isn't on the
+   target.
+
+   ```bash
+   joflux --config joflux.toml verify
+   ```
+
+4. Archive the GitHub originals once the report looks right:
+
+   ```bash
+   joflux --config joflux.toml archive
+   ```
+
+</Steps>
+
+:::caution[Archive asks first]
+`archive` asks `Archive <count> repositories in github.com/<org>? Type yes:` and only goes ahead
+if you type `yes`. `--yes` skips the prompt, so leave it out until you've read
+`verification-report.json`.
+:::
+
+## Next steps
+
+<NextSteps
+  links={[
+    { title: "The five stages", href: "/joflux/stages/", description: "What each stage reads and writes, and how to re-run one." },
+    { title: "Configuration", href: "/joflux/guides/configuration/", description: "Config formats, tokens, GitHub Enterprise Server and older keys." },
+    { title: "Output files", href: "/joflux/reference/output-files/", description: "Every field in the five JSON files a run leaves behind." },
+    { title: "Exit codes", href: "/joflux/reference/exit-codes/", description: "What 0, 1, 2 and 130 mean, for scripting the stages." },
+  ]}
+/>

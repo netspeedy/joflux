@@ -23,7 +23,7 @@ the files as the record of the move. joflux is a reworked public version of an
 older internal GitHub-to-Codeberg helper, and the default install needs nothing
 beyond the Python 3.11+ standard library.
 
-**Quick links:** [Install](#install) · [Try it](#try-it) · [Configuration](docs/configuration.md) · [Usage](docs/usage.md) · [Releases](https://github.com/netspeedy/joflux/releases) · [Website](https://netspeedy.github.io/joflux/)
+**Quick links:** [Install](#install) · [Try it](#try-it) · [Docs](https://netspeedy.github.io/joflux/) · [The five stages](https://netspeedy.github.io/joflux/stages/) · [CLI reference](https://netspeedy.github.io/joflux/reference/cli/) · [Releases](https://github.com/netspeedy/joflux/releases)
 
 ## Install
 
@@ -101,7 +101,9 @@ code 1 and names the missing repositories if any of them aren't on the target.
 
 `archive` is deliberately separate from the rest. It asks you to type `yes` before
 it changes anything, unless you pass `--yes`, and it archives the originals rather
-than deleting them.
+than deleting them. Each stage has its own page in the
+[docs](https://netspeedy.github.io/joflux/stages/), covering what it does, what it
+writes and what to check before the next stage.
 
 Every command exits 0 on success, 1 when a stage partly failed or an API call
 errored, and 2 for a config problem or a missing state file, so a script can stop
@@ -140,7 +142,8 @@ file takes precedence when both are set. For GitHub Enterprise Server, set
 
 Flat keys from the older tool, such as `github_org`, `codeberg_url`,
 `codeberg_org` and `codeberg_token`, still work, so an earlier config can be moved
-across gradually. [docs/configuration.md](docs/configuration.md) lists every key.
+across gradually. [Config keys](https://netspeedy.github.io/joflux/reference/configuration/)
+in the docs lists every key.
 
 ## Before you migrate
 
@@ -163,14 +166,16 @@ make smoke
 ```
 
 `make fmt` formats with black and isort, and `make build` builds the package. The
-GitHub Pages site is built from `website/`, and its [README](website/README.md)
-covers the `make website-*` targets and how the site is published.
-[docs/release.md](docs/release.md) describes the release flow.
+[docs site](https://netspeedy.github.io/joflux/) is built with Astro and Starlight
+from `website/`, and its [README](website/README.md) covers the `make website-*`
+targets and how the site is published. If you add, rename or remove a CLI option,
+update the CLI reference page in the same change: `tests/test_docs.py` fails until
+the page matches. [docs/release.md](docs/release.md) describes the release flow.
 
 The banner at the top of this page and the social cards are generated. Edit the
 copy, layout or timing in `scripts/readme/build_readme_hero.py` and run `make
-readme-hero`. That rebuilds `assets/joflux-readme-hero.svg`, the website's
-`website/public/og-image.png` and `assets/joflux-social-card.png`, which is the
+readme-hero`. That rebuilds `assets/joflux-readme-hero.svg`, the website's share
+card, mark and icons, and `assets/joflux-social-card.png`, which is the
 image for GitHub's social preview and is uploaded by hand in the repository
 settings. It runs the script with `uv`, which installs the pinned fontTools it
 subsets the fonts with, and renders the cards with headless Chrome or Chromium. The

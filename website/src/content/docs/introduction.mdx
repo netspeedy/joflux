@@ -1,0 +1,59 @@
+---
+title: Introduction
+description: joflux moves a GitHub organization's repositories into Forgejo or Codeberg in five stages, each leaving JSON you can read.
+---
+
+import { Steps } from "@astrojs/starlight/components";
+import NextSteps from "../../components/NextSteps.astro";
+
+joflux moves the repositories of a GitHub organization into a Forgejo-compatible instance such as
+Codeberg. It exports an inventory of the organization, starts a Forgejo migration for every
+repository in it, waits for them to finish, checks what arrived, and archives the GitHub originals
+once you're happy with the result.
+
+Each of those steps is its own command, and each one writes what it did as JSON in
+`migration_output/`. You can read exactly what happened, re-run a stage, and keep the files as the
+record of the move. The default install needs nothing beyond the Python 3.11+ standard library.
+
+## What it doesn't do
+
+joflux copies each repository once. It sends Forgejo a normal migration rather than a mirror, so
+the copy doesn't keep following GitHub afterwards, and changes pushed to GitHub after the
+migration stay there. It never deletes anything on GitHub either: the last stage archives the
+originals rather than removing them.
+
+## How a run works
+
+<Steps>
+
+1. `export` reads the organization from GitHub and saves the list as
+   `repos-inventory.json`. Nothing changes on either side, so it's the safe first step.
+
+2. `migrate` reads that inventory and asks Forgejo to start one migration per repository, logging
+   each request in `migration-log.json`.
+
+3. `monitor` polls the target until every started migration has arrived, failed or run out of
+   time, and records each result in `migration-status.json`.
+
+4. `verify` checks every repository in the inventory on the target and writes its size and its
+   issue, pull request, label and release counts to `verification-report.json`.
+
+5. `archive` asks you to confirm, then archives the GitHub originals and logs each one in
+   `archive-log.json`.
+
+</Steps>
+
+Every stage after `export` works from the files the earlier stages wrote, so you can stop between
+stages, read the JSON, and carry on when you're ready. A stage that only partly worked exits with
+code 1, which lets a script stop at the first one that didn't go cleanly.
+
+## Where next
+
+<NextSteps
+  links={[
+    { title: "Quickstart", href: "/joflux/quickstart/", description: "Install joflux, point it at both organizations and export the inventory." },
+    { title: "The five stages", href: "/joflux/stages/", description: "What each stage reads, writes and checks, in the order you run them." },
+    { title: "Before you migrate", href: "/joflux/guides/before-you-migrate/", description: "Tokens, target limits and what to check before a large move." },
+    { title: "CLI", href: "/joflux/reference/cli/", description: "Every command and flag in one place." },
+  ]}
+/>

@@ -1,0 +1,98 @@
+---
+title: CLI
+description: Every joflux command and flag, with its default.
+---
+
+import FlagTable from "../../../components/FlagTable.astro";
+
+export const globalOptions = [
+  { flag: "--config", arg: "PATH", default: "joflux.toml", description: "Config file to read. `.json` is read as JSON, `.yaml` and `.yml` as YAML, anything else as TOML." },
+  { flag: "--log-level", arg: "LEVEL", description: "Override the configured log level for this run: `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`." },
+  { flag: "--version", description: "Print the version and exit." },
+  { short: "-h", flag: "--help", description: "Show help and exit. Each command takes it too." },
+];
+
+export const exportFlags = [
+  { flag: "--exclude-forks", description: "Leave forked repositories out of the inventory." },
+  { flag: "--exclude-archived", description: "Leave repositories already archived on GitHub out of the inventory." },
+];
+
+export const monitorFlags = [
+  { flag: "--interval", arg: "SECONDS", description: "Seconds between polls for this run. Without it, `monitor` uses `poll_interval` from the config, 30 by default." },
+];
+
+export const archiveFlags = [
+  { flag: "--yes", description: "Archive without asking for confirmation." },
+];
+
+## Usage
+
+```bash
+joflux [--config PATH] [--log-level LEVEL] <command> [flags]
+joflux --version
+```
+
+The global options go before the command; each command's own flags go after it. A command is
+required, and running `joflux` on its own prints usage.
+
+## Global options
+
+<FlagTable flags={globalOptions} />
+
+## Commands
+
+| Command | What it does | Reads | Writes |
+| --- | --- | --- | --- |
+| [`export`](/joflux/stages/export/) | Lists the GitHub organization's repositories | GitHub | `repos-inventory.json` |
+| [`migrate`](/joflux/stages/migrate/) | Starts one Forgejo migration per repository | `repos-inventory.json` | `migration-log.json` |
+| [`monitor`](/joflux/stages/monitor/) | Waits for started migrations to arrive | `migration-log.json`, `migration-status.json` | `migration-status.json` |
+| [`verify`](/joflux/stages/verify/) | Checks each repository on the target and counts its contents | `repos-inventory.json` | `verification-report.json` |
+| [`archive`](/joflux/stages/archive/) | Archives the GitHub originals | `repos-inventory.json` | `archive-log.json` |
+
+### export
+
+```bash
+joflux export [--exclude-forks] [--exclude-archived]
+```
+
+<FlagTable flags={exportFlags} />
+
+### migrate
+
+```bash
+joflux migrate
+```
+
+No flags.
+
+### monitor
+
+```bash
+joflux monitor [--interval SECONDS]
+```
+
+<FlagTable flags={monitorFlags} />
+
+### verify
+
+```bash
+joflux verify
+```
+
+No flags.
+
+### archive
+
+```bash
+joflux archive [--yes]
+```
+
+<FlagTable flags={archiveFlags} />
+
+## Logging
+
+Log lines go to standard output in the shape `HH:MM:SS - LEVEL - message`, with the level coloured
+when the output is a terminal. A config error is printed to standard error as
+`config error: <reason>` instead, because it happens before logging is set up.
+
+Every command exits 0, 1, 2 or 130; [Exit codes](/joflux/reference/exit-codes/) has what each means.

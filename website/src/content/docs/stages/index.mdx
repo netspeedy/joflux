@@ -1,0 +1,63 @@
+---
+title: Running the stages
+description: The order joflux's stages run in, what each one does and writes, and how to re-run them.
+---
+
+import NextSteps from "../../../components/NextSteps.astro";
+
+A move is five commands, run in order with the same config:
+
+```bash
+joflux --config joflux.toml export
+joflux --config joflux.toml migrate
+joflux --config joflux.toml monitor
+joflux --config joflux.toml verify
+joflux --config joflux.toml archive
+```
+
+| Stage | What it does | Writes |
+| --- | --- | --- |
+| [`export`](/joflux/stages/export/) | Lists every repository in the GitHub organization | `repos-inventory.json` |
+| [`migrate`](/joflux/stages/migrate/) | Resolves the target organization and starts one Forgejo migration per repository | `migration-log.json` |
+| [`monitor`](/joflux/stages/monitor/) | Polls the target until each started migration completes, fails or runs out of time | `migration-status.json` |
+| [`verify`](/joflux/stages/verify/) | Checks each target repository and records its size and issue, pull request, label and release counts | `verification-report.json` |
+| [`archive`](/joflux/stages/archive/) | Archives the GitHub originals | `archive-log.json` |
+
+Every file goes in the output directory, `migration_output/` unless the config sets `output_dir`.
+[Output files](/joflux/reference/output-files/) lists their fields.
+
+## Running a stage again
+
+The stages are separate commands so you can stop between them, read what the last one wrote and
+carry on later. They don't all behave the same way when you run them twice, though.
+
+`export` writes a fresh `repos-inventory.json` each time, replacing the previous one. The other
+four append to their files, so earlier entries stay and each run adds its own with a timestamp.
+
+`monitor` is the one built to be re-run. It only checks repositories whose latest migration
+request was started and that haven't since been recorded as completed or failed, so stopping it
+and starting it again picks up where it left off. `verify` checks every repository in the
+inventory each time, which makes it safe to repeat once stragglers have arrived.
+
+`migrate` and `archive` act on every repository in the inventory each time they run. Running
+`migrate` again sends a new migration request for all of them, including ones that already
+arrived, so re-run it only with an inventory that lists what's left to move.
+
+## Exit codes
+
+Every stage exits 0 when it went cleanly, 1 when it partly failed or an API call errored, and 2
+for a config problem or a missing state file, such as running `migrate` before `export`. A script
+can run the stages in sequence and stop at the first non-zero exit.
+[Exit codes](/joflux/reference/exit-codes/) has what produces each one.
+
+## The stages
+
+<NextSteps
+  links={[
+    { title: "Export", href: "/joflux/stages/export/", description: "Read the organization from GitHub into the inventory." },
+    { title: "Migrate", href: "/joflux/stages/migrate/", description: "Start one Forgejo migration per repository." },
+    { title: "Monitor", href: "/joflux/stages/monitor/", description: "Wait for the started migrations to arrive." },
+    { title: "Verify", href: "/joflux/stages/verify/", description: "Check every repository made it, with its counts." },
+    { title: "Archive", href: "/joflux/stages/archive/", description: "Archive the GitHub originals once you're happy." },
+  ]}
+/>

@@ -1,0 +1,41 @@
+---
+import { Code, TabItem, Tabs } from "@astrojs/starlight/components";
+import { links } from "../lib/site";
+
+const brew = "brew tap netspeedy/joflux\nbrew install joflux";
+const checkout = `git clone ${links.repo}.git
+cd joflux
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install .`;
+---
+
+<Tabs syncKey="install">
+  <TabItem label="Homebrew">
+    <Code lang="bash" code={brew} />
+    <p class="ns-note">
+      macOS and Linux. If Homebrew refuses the new third-party tap, run
+      <code>brew trust netspeedy/joflux</code> once, then install again.
+    </p>
+  </TabItem>
+  <TabItem label="From a checkout">
+    <Code lang="bash" code={checkout} />
+    <p class="ns-note">
+      Python 3.11 or newer, and nothing outside the standard library. For YAML configs, install
+      <code>'.[yaml]'</code> instead of <code>.</code>.
+    </p>
+  </TabItem>
+</Tabs>
+
+<style>
+  .ns-note {
+    margin-top: 0.75rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  .ns-note code {
+    font-size: 0.92em;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+</style>

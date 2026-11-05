@@ -12,6 +12,10 @@ stage gates (export, migrate, monitor, verify, archive) and land in a Forgejo cl
 from cyan to amber on the way. Each gate flashes as a repo crosses and writes down to the run's
 JSON state, the verify gate carries a tick, and archived originals sit dimmed in the source.
 
+The same script draws the social cards and, when the repo has a website, the docs site's mark
+and icons: website/src/assets/mark.svg for the header, and favicon.svg, apple-touch-icon.png and
+favicon.ico in website/public. They all share the mark's geometry in MARK_FLOW and MARK_LOOP.
+
 Edit the copy, layout or timing here and run `make readme-hero` rather than editing the generated
 SVG. netspeedy/homebrew-joflux shows the same banner, built from a copy of this script in its
 .github/scripts, so copy changes there too. The headline is positioned from measured advances
@@ -32,6 +36,7 @@ import math
 import os
 import random
 import shutil
+import struct
 import subprocess
 import tempfile
 import urllib.request
@@ -339,8 +344,33 @@ def starfield(free: list[tuple[float, float, float, float]]) -> tuple[list[str],
     return defs, body
 
 
+# The mark: a flow line in the brand gradient, and the loop it hands over to, on a dark tile.
+MARK_FLOW = "M17 17h28c6 0 11 5 11 11s-5 11-11 11H30c-5 0-9 4-9 9s4 9 9 9h4"
+MARK_LOOP = "M17 28h16c6 0 11 5 11 11S39 50 33 50h-3"
+MARK_LOOP_INK = "#F4F8FF"
+TILE = "#0F1218"
+
+
+def mark_gradient(gradient_id: str) -> str:
+    return (
+        f'<linearGradient id="{gradient_id}" x1="10" y1="8" x2="54" y2="56" '
+        'gradientUnits="userSpaceOnUse">'
+        f'<stop stop-color="{BLUE}" /><stop offset="0.56" stop-color="{CYAN}" />'
+        f'<stop offset="1" stop-color="{AMBER}" /></linearGradient>'
+    )
+
+
+def mark_paths(gradient_id: str, loop: str = MARK_LOOP_INK) -> str:
+    return (
+        f'<path d="{MARK_FLOW}" fill="none" stroke="url(#{gradient_id})" stroke-width="7" '
+        'stroke-linecap="round" />'
+        f'<path d="{MARK_LOOP}" fill="none" stroke="{loop}" stroke-width="7" '
+        'stroke-linecap="round" opacity="0.9" />'
+    )
+
+
 def mark_symbols() -> list[str]:
-    """The joflux mark from website/favicon.svg, without its tile."""
+    """The joflux mark, without its tile."""
     return [
         *gradient(
             "linearGradient",
@@ -348,17 +378,17 @@ def mark_symbols() -> list[str]:
             [("0", BLUE, ""), ("0.56", CYAN, ""), ("1", AMBER, "")],
         ),
         '    <symbol id="mark" viewBox="0 0 64 64">',
-        '      <path d="M17 17h28c6 0 11 5 11 11s-5 11-11 11H30c-5 0-9 4-9 9s4 9 9 9h4" '
-        'fill="none" stroke="url(#markG)" stroke-width="7" stroke-linecap="round" />',
-        '      <path d="M17 28h16c6 0 11 5 11 11S39 50 33 50h-3" fill="none" stroke="#F4F8FF" '
-        'stroke-width="7" stroke-linecap="round" opacity="0.9" />',
+        f'      <path d="{MARK_FLOW}" fill="none" stroke="url(#markG)" stroke-width="7" '
+        'stroke-linecap="round" />',
+        f'      <path d="{MARK_LOOP}" fill="none" stroke="{MARK_LOOP_INK}" stroke-width="7" '
+        'stroke-linecap="round" opacity="0.9" />',
         "    </symbol>",
     ]
 
 
 def lockup() -> list[str]:
     return [
-        '  <rect x="48.5" y="38.5" width="33" height="33" rx="8" fill="#0F1218" '
+        f'  <rect x="48.5" y="38.5" width="33" height="33" rx="8" fill="{TILE}" '
         'stroke="#3B4A5F" stroke-width="1.2" />',
         '  <use href="#mark" x="49" y="39" width="32" height="32" />',
         f'  <text class="sans" x="94" y="52.5" font-size="15" font-weight="600" '
@@ -801,13 +831,16 @@ def build_social_svg(hero: str, width: int, height: int) -> str:
     return ET.tostring(card, encoding="unicode") + "\n"
 
 
-def render_png(svg_path: Path, png_path: Path, width: int, height: int) -> None:
-    """Screenshot the card in headless Chrome, which renders the embedded fonts exactly."""
+def render_png(
+    svg_path: Path, png_path: Path, width: int, height: int, transparent: bool = False
+) -> None:
+    """Screenshot an SVG in headless Chrome, which renders the embedded fonts exactly."""
     chrome = os.environ.get("CHROME") or next(
         (c for c in CHROME_CANDIDATES if Path(c).exists() or shutil.which(c)), None
     )
     if not chrome:
-        raise SystemExit("the social cards need Chrome or Chromium to render; set CHROME")
+        raise SystemExit("the social cards and icons need Chrome or Chromium to render; set CHROME")
+    background = ["--default-background-color=00000000"] if transparent else []
     with tempfile.TemporaryDirectory() as profile:
         subprocess.run(
             [
@@ -815,6 +848,7 @@ def render_png(svg_path: Path, png_path: Path, width: int, height: int) -> None:
                 "--headless=new",
                 "--disable-gpu",
                 "--hide-scrollbars",
+                *background,
                 f"--user-data-dir={profile}",
                 f"--window-size={width},{height}",
                 f"--screenshot={png_path}",
@@ -842,6 +876,72 @@ def write_social_cards(hero: str) -> None:
         print(f"Wrote {png.relative_to(ROOT)} ({width}x{height})")
 
 
+# Written into the website, so they're only made when the repo has one. The header mark draws its
+# loop in currentColor, so the page's theme can colour it; the favicon is the tile the README's
+# lockup uses; the Apple touch icon fills its square because iOS rounds the corners itself; and
+# favicon.ico carries 16, 32 and 48 px PNGs for clients that ignore the SVG.
+ICON_DIR = ROOT / "website" / "public"
+SITE_MARK = ROOT / "website" / "src" / "assets" / "mark.svg"
+
+
+def icon_svg(size: int | None = None, square: bool = False) -> str:
+    dims = f' width="{size}" height="{size}"' if size else ""
+    radius = 0 if square else 14
+    inset = (
+        '<g transform="translate(6.4 6.4) scale(0.8)">' + mark_paths("g") + "</g>"
+        if square
+        else mark_paths("g")
+    )
+    return (
+        f'<svg xmlns="{SVG_NS}" viewBox="0 0 64 64"{dims}><title>joflux</title>'
+        f"<defs>{mark_gradient('g')}</defs>"
+        f'<rect width="64" height="64" rx="{radius}" fill="{TILE}" />{inset}</svg>\n'
+    )
+
+
+def ico(images: list[tuple[int, bytes]]) -> bytes:
+    """An ICO file holding PNG images, which every current client reads."""
+    header = struct.pack("<HHH", 0, 1, len(images))
+    entries, data = b"", b""
+    offset = 6 + 16 * len(images)
+    for size, png in images:
+        entries += struct.pack("<BBBBHHII", size % 256, size % 256, 0, 0, 1, 32, len(png), offset)
+        data += png
+        offset += len(png)
+    return header + entries + data
+
+
+def write_icons() -> None:
+    if not (ROOT / "website").is_dir():
+        return
+    SITE_MARK.parent.mkdir(parents=True, exist_ok=True)
+    SITE_MARK.write_text(
+        f'<svg xmlns="{SVG_NS}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">'
+        f"<defs>{mark_gradient('ns-mark-g')}</defs>{mark_paths('ns-mark-g', 'currentColor')}</svg>\n",
+        encoding="utf-8",
+    )
+    print(f"Wrote {SITE_MARK.relative_to(ROOT)}")
+    ICON_DIR.mkdir(parents=True, exist_ok=True)
+    favicon = ICON_DIR / "favicon.svg"
+    favicon.write_text(icon_svg(), encoding="utf-8")
+    print(f"Wrote {favicon.relative_to(ROOT)}")
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+
+        def png(size: int, square: bool = False) -> bytes:
+            src, out = work / f"icon-{size}.svg", work / f"icon-{size}.png"
+            src.write_text(icon_svg(size, square), encoding="utf-8")
+            render_png(src, out, size, size, transparent=not square)
+            return out.read_bytes()
+
+        touch = ICON_DIR / "apple-touch-icon.png"
+        touch.write_bytes(png(180, square=True))
+        print(f"Wrote {touch.relative_to(ROOT)} (180x180)")
+        fallback = ICON_DIR / "favicon.ico"
+        fallback.write_bytes(ico([(16, png(16)), (32, png(32)), (48, png(48))]))
+        print(f"Wrote {fallback.relative_to(ROOT)} (16, 32 and 48 px)")
+
+
 def main() -> None:
     hero = build_svg()
     svg = hero.replace("__FONT_FACES__", font_faces(hero))
@@ -852,6 +952,7 @@ def main() -> None:
     OUTPUT.write_text(svg, encoding="utf-8")
     print(f"Wrote {OUTPUT.relative_to(ROOT)} ({len(svg.encode()) / 1024:.1f} KiB)")
     write_social_cards(hero)
+    write_icons()
 
 
 if __name__ == "__main__":
