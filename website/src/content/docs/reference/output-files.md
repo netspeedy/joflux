@@ -12,7 +12,7 @@ sorted keys.
 | `repos-inventory.json` | `export` | `migrate`, `verify`, `archive` |
 | `migration-log.json` | `migrate` | `monitor` |
 | `migration-status.json` | `monitor` | `monitor` |
-| `verification-report.json` | `verify` | |
+| `verification-report.json` | `verify` | `archive` |
 | `archive-log.json` | `archive` | |
 
 `export` replaces the inventory each time it runs. The other four files are lists of events: each
@@ -73,7 +73,8 @@ One entry per repository per `verify` run.
 
 ## archive-log.json
 
-One entry per repository per `archive` run.
+One entry per repository that an `archive` run tries to archive. A repository it leaves alone,
+because `verify` hasn't recorded it as verified, gets none.
 
 | Field | Value |
 | --- | --- |

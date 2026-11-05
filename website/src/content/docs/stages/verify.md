@@ -48,7 +48,10 @@ If anything is missing, `verify` logs `Missing repositories:` with their names a
 ## Before you archive
 
 Read `verification-report.json` and compare the counts with what the repositories hold on GitHub.
-`archive` doesn't look at this report: it archives every repository in the inventory, so it's up to
-you to be sure the move worked first. A repository that [`monitor`](/joflux/stages/monitor/)
-recorded as `unconfirmed` is verified with whatever had arrived when `verify` ran, so compare its
-counts with care, and run `verify` again once you've checked it in the Forgejo web UI.
+`archive` works from this report: it archives only the repositories whose latest entry is
+`verified`, and leaves the rest, so a repository that's `missing` stays unarchived until a later
+`verify` records it as verified. A `verified` entry doesn't compare anything with GitHub, though, so
+it's up to you to be sure the counts are right first. A repository that
+[`monitor`](/joflux/stages/monitor/) recorded as `unconfirmed` is verified with whatever had arrived
+when `verify` ran, so compare its counts with care, and run `verify` again once you've checked it in
+the Forgejo web UI.

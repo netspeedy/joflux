@@ -47,7 +47,7 @@ required, and running `joflux` on its own prints usage.
 | [`migrate`](/joflux/stages/migrate/) | Asks Forgejo to migrate each repository | `repos-inventory.json` | `migration-log.json` |
 | [`monitor`](/joflux/stages/monitor/) | Rechecks migrations Forgejo didn't answer for | `migration-log.json`, `migration-status.json` | `migration-status.json` |
 | [`verify`](/joflux/stages/verify/) | Checks each repository on the target and counts its contents | `repos-inventory.json` | `verification-report.json` |
-| [`archive`](/joflux/stages/archive/) | Archives the GitHub originals | `repos-inventory.json` | `archive-log.json` |
+| [`archive`](/joflux/stages/archive/) | Archives the GitHub originals that verify recorded as verified | `repos-inventory.json`, `verification-report.json` | `archive-log.json` |
 
 ### export
 

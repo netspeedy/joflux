@@ -36,7 +36,8 @@ A stage exits 1 when some of its work failed:
 - `monitor` recorded a repository as unconfirmed, saw one return an error, or gave up with
   repositories still pending
 - `verify` found a repository missing on the target
-- `archive` failed to archive any repository
+- `archive` failed to archive any repository, or left any unarchived because `verify` hasn't
+  recorded it as verified
 
 A request that times out or loses its connection counts as a failed API call for the repository
 it was about: the stage records it and carries on, like any other failed request. In `monitor` it
@@ -53,7 +54,8 @@ joflux exits 2 before doing any work when the config is wrong or a state file it
 A config problem prints `config error:` and the reason to standard error: the file doesn't exist,
 doesn't parse, or is missing a required key or has an invalid value. A missing state file is
 logged instead, as when `migrate`, `verify` or `archive` runs before `export` and stops with
-`inventory not found; run export first`.
+`inventory not found; run export first`, or when `archive` runs before `verify` and stops with
+`verification report not found; run verify first`.
 
 An unknown command or flag also exits 2, with usage.
 
