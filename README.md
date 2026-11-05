@@ -88,19 +88,25 @@ joflux --config joflux.toml archive
 | Stage | What it does | Writes |
 | --- | --- | --- |
 | `export` | Lists every repository in the GitHub organization | `repos-inventory.json` |
-| `migrate` | Resolves the target organization and starts one Forgejo migration per repository | `migration-log.json` |
-| `monitor` | Polls the target until each started migration completes, fails or runs out of time | `migration-status.json` |
+| `migrate` | Resolves the target organization and runs one Forgejo migration per repository, waiting for each to finish | `migration-log.json` |
+| `monitor` | Rechecks any migration Forgejo didn't answer for while `migrate` was waiting | `migration-status.json` |
 | `verify` | Checks each target repository and records its size and issue, pull request, label and release counts | `verification-report.json` |
 | `archive` | Archives the GitHub originals | `archive-log.json` |
 
 `migrate` copies each repository as a normal repository rather than a mirror and
 keeps it private if it was private on GitHub. Forgejo brings the wiki, issues, pull
 requests, labels, milestones and releases across with the git data; set
-`metadata = false` under `[migration]` if you only want the git data. `monitor`
-only checks repositories whose migration was started and hasn't finished yet, so
-you can stop it and run it again; `--interval` overrides the poll interval for that
-run. `verify` exits with code 1 and names the missing repositories if any of them
-aren't on the target.
+`metadata = false` under `[migration]` if you only want the git data. Forgejo
+answers a migrate request only once the import has finished, so `migrate` records
+each repository as `completed` or `failed` as it goes, waiting up to
+`max_wait_time` seconds for each. If no answer comes back in that time, or a proxy
+in front of Forgejo gives up first, the repository is recorded as `initiated` and
+`monitor` checks it. Forgejo's API can show that the git data has arrived but not
+whether the rest of the import has finished, so once the git data is there
+`monitor` marks the repository `unconfirmed` and exits 1; check it in the Forgejo
+web UI before you go on. You can stop `monitor` and run it again, and `--interval`
+overrides the poll interval for that run. `verify` exits with code 1 and names the
+missing repositories if any of them aren't on the target.
 
 `archive` is deliberately separate from the rest. It asks you to type `yes` before
 it changes anything, unless you pass `--yes`, and it archives the originals rather
@@ -159,9 +165,12 @@ migrations run at once, so check the target's limits before starting on a large
 organization. Importing issues and pull requests takes far longer than copying git
 data and spends the GitHub token's API quota; Forgejo pauses until the quota resets
 when it runs out, and `migrate` waits up to `max_wait_time` seconds for each
-repository. If the target won't take metadata imports, set `metadata = false`.
-Keep `migration_output/` once the run is over: it's the audit trail, and it's what
-`monitor`, `verify` and `archive` read when you re-run them.
+repository. If the target won't take metadata imports, set `metadata = false`. If
+the target sits behind a reverse proxy, the proxy's read timeout has to be longer
+than your slowest import; otherwise it answers 504 while Forgejo is still working,
+and joflux can only record that import as unconfirmed. Keep `migration_output/`
+once the run is over: it's the audit trail, and it's what `monitor`, `verify` and
+`archive` read when you re-run them.
 
 ## Development
 

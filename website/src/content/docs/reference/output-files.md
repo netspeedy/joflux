@@ -41,20 +41,21 @@ One entry per migration request.
 | Field | Value |
 | --- | --- |
 | `repo` | Repository name |
-| `status` | `initiated` or `failed` |
-| `message` | `Migration started` or `Failed to start migration` |
-| `migration_id` | The ID Forgejo returned, `true` if it accepted the request without one, or `null` when the request failed |
-| `timestamp` | When the request was made |
+| `status` | `completed` when Forgejo answered with the imported repository, `initiated` when no answer came back and the import may still be running, or `failed` when Forgejo rejected or failed it |
+| `message` | For `completed`, `Forgejo finished the import`. For `initiated`, why no answer came, such as `Forgejo didn't answer (timed out); the import may still be running`, or a gateway's HTTP error followed by `; Forgejo may still be importing the repository`. For `failed`, `Forgejo rejected or failed the import:` and the HTTP error. |
+| `migration_id` | For `completed`, the target repository's ID from Forgejo's answer; otherwise `null` |
+| `timestamp` | When the request finished |
 
 ## migration-status.json
 
-One entry each time `monitor` settles a repository. Repositories still in progress get no entry.
+One entry each time `monitor` records a repository as unconfirmed or as an error. Repositories
+still in progress get no entry.
 
 | Field | Value |
 | --- | --- |
 | `repo` | Repository name |
-| `status` | `completed` or `error` |
-| `details` | Empty |
+| `status` | `unconfirmed` when its git data is on the target but Forgejo's API can't say whether the rest of the import finished, or `error` when the target returned an error |
+| `details` | For `unconfirmed`, `git data present; Forgejo's API doesn't report whether the import finished`. For `error`, empty. |
 | `checked_at` | When it was checked |
 
 ## verification-report.json

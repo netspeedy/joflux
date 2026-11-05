@@ -29,11 +29,11 @@ originals rather than removing them.
 1. `export` reads the organization from GitHub and saves the list as
    `repos-inventory.json`. Nothing changes on either side, so it's the safe first step.
 
-2. `migrate` reads that inventory and asks Forgejo to migrate each repository, logging each
-   request in `migration-log.json`.
+2. `migrate` reads that inventory and has Forgejo migrate each repository, waiting for each
+   import to finish and logging what happened in `migration-log.json`.
 
-3. `monitor` polls the target until every started migration has arrived, failed or run out of
-   time, and records each result in `migration-status.json`.
+3. `monitor` rechecks any migration Forgejo didn't answer for in time, and records what it can
+   tell about each in `migration-status.json`.
 
 4. `verify` checks every repository in the inventory on the target and writes its size and its
    issue, pull request, label and release counts to `verification-report.json`.

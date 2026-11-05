@@ -84,14 +84,14 @@ When the inventory is right, run the remaining stages in order, all with the sam
 
 <Steps>
 
-1. Start the migrations:
+1. Run the migrations. `migrate` waits for Forgejo to finish each one:
 
    ```bash
    joflux --config joflux.toml migrate
    ```
 
-2. Wait for them to arrive. You can stop `monitor` and run it again; it only checks repositories
-   that haven't finished.
+2. Check the ones Forgejo didn't answer for in time. With none, `monitor` exits straight away;
+   otherwise it names the repositories it can't confirm, for you to check in the Forgejo web UI.
 
    ```bash
    joflux --config joflux.toml monitor

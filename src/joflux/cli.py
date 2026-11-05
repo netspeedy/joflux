@@ -131,7 +131,8 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
         return 1
 
     LOGGER.info("Target organization id: %s", org_id)
-    successful = 0
+    completed = 0
+    unconfirmed = 0
     failed = 0
 
     for index, repo in enumerate(repositories, 1):
@@ -142,7 +143,7 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
         description = str(repo.get("description") or "Migrated from GitHub by joflux")
 
         LOGGER.info("[%d/%d] Migrating %s", index, len(repositories), repo_name)
-        migration_id = forgejo.migrate_repository(
+        result = forgejo.migrate_repository(
             clone_url=clone_url,
             repo_name=repo_name,
             org_id=org_id,
@@ -154,15 +155,22 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
             timeout=config.max_wait_time,
         )
 
-        if migration_id:
-            state.log_migration(repo_name, "initiated", "Migration started", migration_id)
-            successful += 1
+        state.log_migration(repo_name, result.status, result.message, result.repo_id)
+        if result.status == "completed":
+            completed += 1
+        elif result.status == "initiated":
+            LOGGER.warning("%s may still be importing; run monitor to check it", repo_name)
+            unconfirmed += 1
         else:
-            state.log_migration(repo_name, "failed", "Failed to start migration")
             failed += 1
         time.sleep(1)
 
-    LOGGER.info("Migration requests complete: %d started, %d failed", successful, failed)
+    LOGGER.info(
+        "Migrations finished: %d completed, %d unconfirmed, %d failed",
+        completed,
+        unconfirmed,
+        failed,
+    )
     return 0 if failed == 0 else 1
 
 
@@ -173,13 +181,13 @@ def cmd_monitor(args: argparse.Namespace, config: AppConfig) -> int:
     status_events = state.load_json(state.status_file) if state.status_file.exists() else []
     pending = _pending_migration_repos(migration_events, status_events)
     if not pending:
-        LOGGER.warning("No initiated migrations found")
+        LOGGER.info("No unconfirmed migrations to check")
         return 0
 
     interval = args.interval or config.poll_interval
     forgejo = ForgejoClient(config.forgejo_url, config.forgejo_token, LOGGER)
     started_at = time.time()
-    completed = 0
+    unconfirmed = 0
     failed = 0
 
     while pending:
@@ -188,11 +196,19 @@ def cmd_monitor(args: argparse.Namespace, config: AppConfig) -> int:
 
         for repo_name in list(pending):
             status = forgejo.repository_status(config.forgejo_org, repo_name)
-            if status == "completed":
-                LOGGER.info("%s completed", repo_name)
-                state.log_status(repo_name, "completed")
+            if status == "unconfirmed":
+                LOGGER.warning(
+                    "%s has its git data on the target, but Forgejo's API can't say whether "
+                    "the rest of the import finished; check it in the Forgejo web UI",
+                    repo_name,
+                )
+                state.log_status(
+                    repo_name,
+                    "unconfirmed",
+                    "git data present; Forgejo's API doesn't report whether the import finished",
+                )
                 pending.remove(repo_name)
-                completed += 1
+                unconfirmed += 1
             elif status == "error":
                 LOGGER.error("%s returned an error", repo_name)
                 state.log_status(repo_name, "error")
@@ -208,9 +224,12 @@ def cmd_monitor(args: argparse.Namespace, config: AppConfig) -> int:
             time.sleep(interval)
 
     LOGGER.info(
-        "Monitor complete: %d completed, %d failed, %d pending", completed, failed, len(pending)
+        "Monitor complete: %d unconfirmed, %d failed, %d pending",
+        unconfirmed,
+        failed,
+        len(pending),
     )
-    return 0 if failed == 0 and not pending else 1
+    return 0 if failed == 0 and unconfirmed == 0 and not pending else 1
 
 
 def cmd_verify(_args: argparse.Namespace, config: AppConfig) -> int:

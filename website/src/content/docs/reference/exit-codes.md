@@ -23,15 +23,18 @@ done
 ## 0
 
 The stage did everything it set out to. Two cases exit 0 without doing anything: `archive` when you
-answer anything other than `yes` at its prompt, and `monitor` when there are no started migrations
-to check.
+answer anything other than `yes` at its prompt, and `monitor` when there are no unconfirmed
+migrations to check, which is the usual case because `migrate` waits for Forgejo to finish each
+import.
 
 ## 1
 
 A stage exits 1 when some of its work failed:
 
-- `migrate` couldn't resolve the target organization, or any migration request failed
-- `monitor` saw a repository return an error, or gave up with repositories still pending
+- `migrate` couldn't resolve the target organization, or Forgejo rejected or failed any import;
+  an import that went unanswered doesn't count
+- `monitor` recorded a repository as unconfirmed, saw one return an error, or gave up with
+  repositories still pending
 - `verify` found a repository missing on the target
 - `archive` failed to archive any repository
 
