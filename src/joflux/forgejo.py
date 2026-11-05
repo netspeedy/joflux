@@ -6,11 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from .http import APIError, request_json
-
-# A gateway answering 504 or 524 (Cloudflare) has given up waiting on Forgejo,
-# which keeps importing behind it.
-GATEWAY_TIMEOUT_STATUSES = (504, 524)
+from .http import APIError, NoAnswerError, request_json
 
 
 @dataclass(frozen=True)
@@ -100,18 +96,12 @@ class ForgejoClient:
                 timeout=timeout,
                 allow_status=(201, 202),
             )
-        except (TimeoutError, ConnectionError) as exc:
+        except NoAnswerError as exc:
             self.logger.warning("No answer from Forgejo for %s: %s", repo_name, exc)
             return MigrationResult(
-                "initiated",
-                message=f"Forgejo didn't answer ({exc}); the import may still be running",
+                "initiated", message=f"{exc}; Forgejo may still be importing the repository"
             )
         except APIError as exc:
-            if exc.status in GATEWAY_TIMEOUT_STATUSES:
-                self.logger.warning("Gateway gave up waiting on Forgejo for %s: %s", repo_name, exc)
-                return MigrationResult(
-                    "initiated", message=f"{exc}; Forgejo may still be importing the repository"
-                )
             self.logger.error("Migration failed for %s: %s", repo_name, exc.body or exc)
             return MigrationResult(
                 "failed", message=f"Forgejo rejected or failed the import: {exc}"
@@ -141,6 +131,9 @@ class ForgejoClient:
                 self.headers,
                 allow_status=(404,),
             )
+        except NoAnswerError:
+            # A poll that timed out says nothing about the import, and an error would settle it.
+            return "in_progress"
         except APIError:
             return "error"
 

@@ -7,7 +7,7 @@ import pytest
 
 from joflux import forgejo
 from joflux.forgejo import ForgejoClient
-from joflux.http import APIError
+from joflux.http import APIError, NoAnswerError
 
 
 def test_repository_metadata_reports_count_failures(monkeypatch) -> None:
@@ -289,10 +289,8 @@ def test_migrate_repository_reports_a_finished_import(monkeypatch) -> None:
 @pytest.mark.parametrize(
     "outcome",
     [
-        TimeoutError("timed out"),
-        ConnectionResetError("Remote end closed connection without response"),
-        APIError("HTTP 504 from migrate", 504, "Gateway Timeout"),
-        APIError("HTTP 524 from migrate", 524, "A timeout occurred"),
+        NoAnswerError("no answer from https://forge.example/api/v1/repos/migrate: timed out"),
+        NoAnswerError("HTTP 504 from https://forge.example/api/v1/repos/migrate", 504, ""),
     ],
 )
 def test_migrate_repository_keeps_an_unanswered_import_open(monkeypatch, outcome: Any) -> None:
@@ -304,6 +302,7 @@ def test_migrate_repository_keeps_an_unanswered_import_open(monkeypatch, outcome
 
     assert result.status == "initiated"
     assert result.repo_id is None
+    assert result.message == f"{outcome}; Forgejo may still be importing the repository"
 
 
 @pytest.mark.parametrize("status", [409, 422, 500])
@@ -316,3 +315,20 @@ def test_migrate_repository_reports_rejected_imports_as_failed(monkeypatch, stat
 
     assert result.status == "failed"
     assert str(status) in result.message
+
+
+@pytest.mark.parametrize(
+    ("outcome", "expected"),
+    [
+        (NoAnswerError("no answer from https://forge.example: timed out"), "in_progress"),
+        (APIError("HTTP 500 from https://forge.example", 500, "{}"), "error"),
+    ],
+)
+def test_repository_status_keeps_polling_after_a_timeout(
+    monkeypatch, outcome: APIError, expected: str
+) -> None:
+    """A poll that times out leaves the repository pending; a real error settles it."""
+    _fake_migrate(monkeypatch, outcome)
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+
+    assert client.repository_status("target", "example") == expected

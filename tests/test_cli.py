@@ -1,10 +1,12 @@
 """CLI tests."""
 
 import argparse
+import json
+from typing import Any
 
 import pytest
 
-from joflux import cli
+from joflux import cli, http
 from joflux.cli import _pending_migration_repos, main
 from joflux.config import AppConfig
 from joflux.forgejo import MigrationResult
@@ -217,3 +219,67 @@ def test_verify_records_whether_each_wiki_arrived(tmp_path, monkeypatch) -> None
         "size:1 issues:2 pulls:3 labels:4 releases:5 wiki:yes",
         "size:1 issues:2 pulls:3 labels:4 releases:5 wiki:no",
     ]
+
+
+class _FakeResponse:
+    """The parts of an HTTP response request_json reads."""
+
+    def __init__(self, data: Any) -> None:
+        self.body = json.dumps(data).encode("utf-8")
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *_args) -> None:
+        return None
+
+    def read(self) -> bytes:
+        """Return the JSON body."""
+        return self.body
+
+
+def test_verify_carries_on_after_a_request_times_out(tmp_path, monkeypatch) -> None:
+    """A timed-out GET is that repository's error, not the end of the stage."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "slow"}, {"name": "fine"}])
+
+    def fake_urlopen(request: Any, timeout: int = 30) -> Any:
+        del timeout
+        if "/repos/target/slow" in request.full_url:
+            raise TimeoutError("timed out")
+        if request.full_url.endswith("/repos/target/fine"):
+            return _FakeResponse({"size": 1, "has_wiki_contents": False})
+        return _FakeResponse([])
+
+    monkeypatch.setattr(http, "urlopen", fake_urlopen)
+
+    assert cli.cmd_verify(argparse.Namespace(), _config(tmp_path)) == 1
+    events = state.load_json(state.verify_file)
+    assert [(event["repo"], event["status"]) for event in events] == [
+        ("slow", "missing"),
+        ("fine", "verified"),
+    ]
+    assert events[0]["details"].startswith("no answer from https://forge.example/")
+
+
+def test_archive_carries_on_after_a_request_times_out(tmp_path, monkeypatch) -> None:
+    """A timed-out archive request is logged as failed and the next repository still runs."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "slow"}, {"name": "fine"}])
+
+    def fake_urlopen(request: Any, timeout: int = 30) -> Any:
+        del timeout
+        if request.full_url.endswith("/repos/source/slow"):
+            raise TimeoutError("timed out")
+        return _FakeResponse({"archived": True})
+
+    monkeypatch.setattr(http, "urlopen", fake_urlopen)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+
+    assert cli.cmd_archive(argparse.Namespace(yes=True), _config(tmp_path)) == 1
+    events = state.load_json(state.archive_log)
+    assert [(event["repo"], event["status"]) for event in events] == [
+        ("slow", "failed"),
+        ("fine", "success"),
+    ]
+    assert events[0]["message"].startswith("no answer from https://api.github.com/")
