@@ -145,8 +145,10 @@ def _capture_migrate_request(monkeypatch) -> dict[str, Any]:
         timeout: int = 30,
         allow_status: tuple[int, ...] = (),
     ) -> Any:
-        del params, allow_status
-        captured.update(method=method, url=url, payload=payload, timeout=timeout)
+        del params
+        captured.update(
+            method=method, url=url, payload=payload, timeout=timeout, allow_status=allow_status
+        )
         return {"id": 7}
 
     monkeypatch.setattr(forgejo, "request_json", fake_request_json)
@@ -344,3 +346,46 @@ def test_repository_status_keeps_polling_after_a_timeout(
     client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
 
     assert client.repository_status("target", "example") == expected
+
+
+def test_migrate_repository_leaves_success_statuses_to_urllib(monkeypatch) -> None:
+    """urlopen only raises for non-2xx answers, so 201 and 202 never needed allowing."""
+    captured = _capture_migrate_request(monkeypatch)
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+
+    _migrate(client)
+
+    assert captured["allow_status"] == ()
+
+
+def test_repository_metadata_sends_only_the_filters_each_list_reads(monkeypatch) -> None:
+    """ListLabels and ListReleases have no state parameter; issues and pulls do."""
+    sent: dict[str, dict[str, Any]] = {}
+
+    def fake_request_json(
+        _method: str,
+        url: str,
+        _headers: dict[str, str],
+        payload: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: int = 30,
+        allow_status: tuple[int, ...] = (),
+    ) -> Any:
+        del payload, timeout, allow_status
+        if url.endswith("/api/v1/repos/target/example"):
+            return {"size": 12}
+        sent[url.rsplit("/", 1)[-1]] = dict(params or {})
+        return []
+
+    monkeypatch.setattr(forgejo, "request_json", fake_request_json)
+
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+    assert client.repository_metadata("target", "example")["status"] == "verified"
+
+    paging = {"page": 1, "limit": 50}
+    assert sent == {
+        "issues": {"state": "all", "type": "issues", **paging},
+        "pulls": {"state": "all", **paging},
+        "labels": paging,
+        "releases": paging,
+    }

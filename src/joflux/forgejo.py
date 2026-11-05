@@ -97,7 +97,6 @@ class ForgejoClient:
                 self.headers,
                 payload=payload,
                 timeout=timeout,
-                allow_status=(201, 202),
             )
         except NoAnswerError as exc:
             self.logger.warning("No answer from Forgejo for %s: %s", repo_name, exc)
@@ -165,8 +164,8 @@ class ForgejoClient:
             # Forgejo's issue list includes pull requests unless it's asked for issues alone.
             ("issues", f"{base}/issues", {"state": "all", "type": "issues"}),
             ("pulls", f"{base}/pulls", {"state": "all"}),
-            ("labels", f"{base}/labels", {"state": "all"}),
-            ("releases", f"{base}/releases", {"state": "all"}),
+            ("labels", f"{base}/labels", {}),
+            ("releases", f"{base}/releases", {}),
         ):
             try:
                 counts[label] = self._count_items(path, filters)
