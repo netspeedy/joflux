@@ -21,13 +21,16 @@ and pull requests are counted separately, so the issue count doesn't include pul
 repository it can read is recorded as `verified`, with details in the shape:
 
 ```text
-size:<size> issues:<n|off|external> pulls:<n|off> labels:<n> releases:<n> wiki:<yes|no>
+size:<size> issues:<n|off|external> pulls:<n|off> labels:<n> releases:<n|off> wiki:<yes|no>
 ```
 
 Forgejo won't list the issues of a repository whose issue tracker is turned off, or pointed at an
-external tracker, or the pull requests of one with pull requests turned off; it answers 404. So
-`verify` reads which are on from the repository itself and doesn't ask for the others: the details
-say `issues:off`, `issues:external` or `pulls:off` in place of that count.
+external tracker, the pull requests of one with pull requests turned off, or the releases of one
+with releases turned off; it answers 404. So `verify` reads which are on from the repository itself
+and doesn't ask for the others: the details say `issues:off`, `issues:external`, `pulls:off` or
+`releases:off` in place of that count. Forgejo also won't list pull requests for an empty
+repository, one with no commits, which can't have any, so `verify` records `pulls:0` for it without
+asking.
 
 `wiki` is `yes` when the target repository has a wiki, which for a freshly migrated repository
 means Forgejo imported one; a wiki someone created on the target afterwards counts too. It's `no`

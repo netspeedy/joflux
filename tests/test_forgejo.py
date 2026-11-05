@@ -188,6 +188,52 @@ def test_repository_metadata_records_switched_off_units_instead_of_failing(
     assert ("pulls" in requested) is isinstance(pulls, int)
 
 
+@pytest.mark.parametrize(
+    ("repo", "pulls", "releases"),
+    [
+        ({"empty": True, "has_pull_requests": True, "has_releases": True}, 0, 0),
+        ({"empty": False, "has_pull_requests": True, "has_releases": False}, 1, "off"),
+    ],
+)
+def test_repository_metadata_counts_empty_repositories_and_switched_off_releases(
+    monkeypatch, repo: dict[str, Any], pulls: Any, releases: Any
+) -> None:
+    """An empty repository has no pull requests to list, and releases can be switched off."""
+    requested: list[str] = []
+
+    def fake_request_json(
+        _method: str,
+        url: str,
+        _headers: dict[str, str],
+        payload: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: int = 30,
+        allow_status: tuple[int, ...] = (),
+    ) -> Any:
+        del payload, params, timeout, allow_status
+        if url.endswith("/api/v1/repos/target/example"):
+            return {"size": 0, "has_issues": True, **repo}
+        endpoint = url.rsplit("/", 1)[-1]
+        requested.append(endpoint)
+        # Forgejo's mustAllowPulls() refuses an empty repository, and reqRepoReader refuses a
+        # switched-off releases unit, both with 404.
+        if (endpoint == "pulls" and repo["empty"]) or (
+            endpoint == "releases" and not repo["has_releases"]
+        ):
+            raise APIError(f"HTTP 404 from {url}", 404, "{}")
+        return [{}] if endpoint == "pulls" else []
+
+    monkeypatch.setattr(forgejo, "request_json", fake_request_json)
+
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+    metadata = client.repository_metadata("target", "example")
+
+    assert metadata["status"] == "verified"
+    assert (metadata["pulls"], metadata["releases"]) == (pulls, releases)
+    assert ("pulls" in requested) is not repo["empty"]
+    assert ("releases" in requested) is repo["has_releases"]
+
+
 METADATA_SWITCHES = ("wiki", "issues", "pull_requests", "labels", "milestones", "releases")
 
 
