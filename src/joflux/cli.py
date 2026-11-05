@@ -13,7 +13,7 @@ from typing import Any
 from . import package_version
 from .config import AppConfig, ConfigError, load_config
 from .forgejo import ForgejoClient
-from .github import GitHubClient
+from .github import GitHubClient, web_location
 from .http import APIError
 from .logging import configure_logging
 from .state import MigrationState
@@ -313,8 +313,8 @@ def cmd_archive(args: argparse.Namespace, config: AppConfig) -> int:
         )
 
     if to_archive and not args.yes:
-        count = len(to_archive)
-        prompt = f"Archive {count} repositories in github.com/{config.github_org}? Type yes: "
+        location = web_location(config.github_api_url, config.github_org)
+        prompt = f"Archive {len(to_archive)} repositories in {location}? Type yes: "
         if input(prompt).strip().lower() != "yes":
             LOGGER.warning("Archive cancelled")
             return 0

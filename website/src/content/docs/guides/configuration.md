@@ -68,8 +68,9 @@ needs to be able to do.
 ## GitHub Enterprise Server
 
 joflux talks to `https://api.github.com` by default. For GitHub Enterprise Server, set `api_url`
-under `[github]` to your server's API address. `export` then lists the organization from your
-server, and `migrate` hands Forgejo the clone URLs your server put in the inventory.
+under `[github]` to your server's API address, which is `https://<host>/api/v3`. `export` then
+lists the organization from your server, `migrate` hands Forgejo the clone URLs your server put in
+the inventory, and `archive`'s prompt names `<host>/<org>`.
 
 ## Metadata
 
