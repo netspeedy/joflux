@@ -131,6 +131,63 @@ def test_repository_metadata_reports_whether_a_wiki_arrived(monkeypatch, content
     assert metadata["wiki"] is contents
 
 
+@pytest.mark.parametrize(
+    ("units", "issues", "pulls"),
+    [
+        ({"has_issues": False, "has_pull_requests": False}, "off", "off"),
+        ({"has_issues": True, "has_pull_requests": False}, 2, "off"),
+        (
+            {
+                "has_issues": True,
+                "external_tracker": {"external_tracker_url": "https://bugs.example"},
+                "has_pull_requests": True,
+            },
+            "external",
+            1,
+        ),
+    ],
+)
+def test_repository_metadata_records_switched_off_units_instead_of_failing(
+    monkeypatch, units: dict[str, Any], issues: Any, pulls: Any
+) -> None:
+    """Forgejo answers 404 for a unit that's off, so verify doesn't ask and says why."""
+    requested: list[str] = []
+
+    def fake_request_json(
+        _method: str,
+        url: str,
+        _headers: dict[str, str],
+        payload: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: int = 30,
+        allow_status: tuple[int, ...] = (),
+    ) -> Any:
+        del payload, timeout, allow_status
+        if url.endswith("/api/v1/repos/target/example"):
+            return {"size": 12, **units}
+        endpoint = url.rsplit("/", 1)[-1]
+        requested.append(endpoint)
+        issues_on = units.get("has_issues") and not units.get("external_tracker")
+        if (endpoint == "issues" and not issues_on) or (
+            endpoint == "pulls" and not units.get("has_pull_requests")
+        ):
+            raise APIError(f"HTTP 404 from {url}", 404, "{}")
+        if endpoint == "issues":
+            assert (params or {}).get("type") == "issues"
+            return [{}, {}]
+        return [{}] if endpoint == "pulls" else []
+
+    monkeypatch.setattr(forgejo, "request_json", fake_request_json)
+
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+    metadata = client.repository_metadata("target", "example")
+
+    assert metadata["status"] == "verified"
+    assert (metadata["issues"], metadata["pulls"]) == (issues, pulls)
+    assert ("issues" in requested) is isinstance(issues, int)
+    assert ("pulls" in requested) is isinstance(pulls, int)
+
+
 METADATA_SWITCHES = ("wiki", "issues", "pull_requests", "labels", "milestones", "releases")
 
 

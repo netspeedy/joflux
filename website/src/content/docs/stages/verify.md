@@ -21,8 +21,13 @@ and pull requests are counted separately, so the issue count doesn't include pul
 repository it can read is recorded as `verified`, with details in the shape:
 
 ```text
-size:<size> issues:<n> pulls:<n> labels:<n> releases:<n> wiki:<yes|no>
+size:<size> issues:<n|off|external> pulls:<n|off> labels:<n> releases:<n> wiki:<yes|no>
 ```
+
+Forgejo won't list the issues of a repository whose issue tracker is turned off, or pointed at an
+external tracker, or the pull requests of one with pull requests turned off; it answers 404. So
+`verify` reads which are on from the repository itself and doesn't ask for the others: the details
+say `issues:off`, `issues:external` or `pulls:off` in place of that count.
 
 `wiki` is `yes` when the target repository has a wiki, which for a freshly migrated repository
 means Forgejo imported one; a wiki someone created on the target afterwards counts too. It's `no`
@@ -31,9 +36,7 @@ pages, and always `no` with `metadata = false`.
 
 The size is the one the target reports. The counts are of what Forgejo imported, so with
 `metadata = false` in the config they're all zero. If the repository can't be read, or one of the
-counts fails, it's recorded as `missing` along with the error. That includes a repository whose
-issue tracker has been turned off on the target, or pointed at an external tracker: Forgejo won't
-list its issues, and the count fails with HTTP 404.
+counts fails, it's recorded as `missing` along with the error.
 
 Each check is logged in the shape `[<n>/<total>] Verifying <repo>`, and the summary at the end has
 the shape `Verification complete: <verified> verified, <missing> missing`.

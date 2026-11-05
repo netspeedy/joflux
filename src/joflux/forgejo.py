@@ -158,8 +158,18 @@ class ForgejoClient:
         except APIError as exc:
             return {"name": repo_name, "status": "error", "error": str(exc)}
 
+        repo_info = repo_data if isinstance(repo_data, dict) else {}
+        # Forgejo won't list issues without its own tracker, or pull requests with the unit off,
+        # so those counts would fail with 404. Record why instead of asking.
+        counts: dict[str, int | str] = {}
+        if repo_info.get("external_tracker"):
+            counts["issues"] = "external"
+        elif repo_info.get("has_issues") is False:
+            counts["issues"] = "off"
+        if repo_info.get("has_pull_requests") is False:
+            counts["pulls"] = "off"
+
         base = f"/api/v1/repos/{org_name}/{repo_name}"
-        counts: dict[str, int] = {}
         for label, path, filters in (
             # Forgejo's issue list includes pull requests unless it's asked for issues alone.
             ("issues", f"{base}/issues", {"state": "all", "type": "issues"}),
@@ -167,6 +177,8 @@ class ForgejoClient:
             ("labels", f"{base}/labels", {}),
             ("releases", f"{base}/releases", {}),
         ):
+            if label in counts:
+                continue
             try:
                 counts[label] = self._count_items(path, filters)
             except APIError as exc:
