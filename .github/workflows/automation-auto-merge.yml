@@ -62,7 +62,10 @@ jobs:
           else
             prs="$(
               gh pr list --state open --json number,author,baseRefName,headRefName \
-                --jq '.[] | select(.baseRefName == "'"${DEFAULT_BRANCH}"'" and (.author.login == "dependabot[bot]" or .author.login == "dependabot" or .author.login == "app/dependabot" or .author.login == "app/github-actions" or .author.login == "github-actions" or .author.login == "github-actions[bot]")) | .number'
+                --jq '.[]
+                  | select(.baseRefName == "'"${DEFAULT_BRANCH}"'")
+                  | select(.author.login | IN("dependabot[bot]", "dependabot", "app/dependabot", "app/github-actions", "github-actions", "github-actions[bot]"))
+                  | .number'
             )"
           fi
 
