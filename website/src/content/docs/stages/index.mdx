@@ -39,9 +39,9 @@ request went unanswered and that haven't been settled since, so stopping it and 
 picks up where it left off. `verify` checks every repository in the inventory each time, which
 makes it safe to repeat once stragglers have arrived.
 
-`migrate` and `archive` act on every repository in the inventory each time they run. Running
-`migrate` again sends a new migration request for all of them, including ones that already
-arrived, so re-run it only with an inventory that lists what's left to move.
+`archive` acts on every repository in the inventory each time it runs. `migrate` skips the
+repositories whose migration already completed and sends a new request for the rest, so running it
+again retries what didn't finish.
 
 ## Exit codes
 

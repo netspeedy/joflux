@@ -315,6 +315,7 @@ def test_migrate_repository_reports_rejected_imports_as_failed(monkeypatch, stat
 
     assert result.status == "failed"
     assert str(status) in result.message
+    assert result.http_status == status
 
 
 @pytest.mark.parametrize(

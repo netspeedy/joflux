@@ -15,12 +15,14 @@ class MigrationResult:
 
     status is "completed" when Forgejo answered with the imported repository,
     "initiated" when the request went out but no answer came back, so the import may
-    still be running, and "failed" when Forgejo rejected or failed it.
+    still be running, and "failed" when Forgejo rejected or failed it. http_status is
+    the HTTP status Forgejo answered a failed request with, when it answered at all.
     """
 
     status: str
     repo_id: int | None = None
     message: str = ""
+    http_status: int | None = None
 
 
 class ForgejoClient:
@@ -104,7 +106,9 @@ class ForgejoClient:
         except APIError as exc:
             self.logger.error("Migration failed for %s: %s", repo_name, exc.body or exc)
             return MigrationResult(
-                "failed", message=f"Forgejo rejected or failed the import: {exc}"
+                "failed",
+                message=f"Forgejo rejected or failed the import: {exc}",
+                http_status=exc.status,
             )
 
         repo_id = response.get("id") if isinstance(response, dict) else None
