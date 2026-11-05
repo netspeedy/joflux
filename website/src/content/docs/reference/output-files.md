@@ -36,7 +36,9 @@ entry:
 
 ## migration-log.json
 
-One entry per migration request.
+One entry per migration request. A repository that `migrate` skips, because its latest entry is
+already `completed`, gets no new one, and neither does an `initiated` one whose repository is still
+on the target when `migrate` runs again.
 
 | Field | Value |
 | --- | --- |

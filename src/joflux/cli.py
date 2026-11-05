@@ -131,12 +131,24 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
         return 1
 
     LOGGER.info("Target organization id: %s", org_id)
+    latest = _latest_migration_statuses(state)
     completed = 0
     unconfirmed = 0
     failed = 0
+    skipped = 0
 
     for index, repo in enumerate(repositories, 1):
         repo_name = str(repo["name"])
+        if latest.get(repo_name) == "completed":
+            LOGGER.info(
+                "[%d/%d] Skipping %s: its migration already completed",
+                index,
+                len(repositories),
+                repo_name,
+            )
+            skipped += 1
+            continue
+
         clone_url = str(
             repo.get("clone_url") or f"https://github.com/{config.github_org}/{repo_name}.git"
         )
@@ -155,6 +167,22 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
             timeout=config.max_wait_time,
         )
 
+        if (
+            result.status == "failed"
+            and result.http_status == 409
+            and latest.get(repo_name) == "initiated"
+        ):
+            # The name is taken by the earlier, unconfirmed import. Logging that as failed would
+            # supersede it and stop monitor checking it, so leave its entry as it is.
+            LOGGER.warning(
+                "%s is still on the target from its unconfirmed import, so it's left for monitor; "
+                "if that import failed, delete the repository on the target and run migrate again",
+                repo_name,
+            )
+            unconfirmed += 1
+            time.sleep(1)
+            continue
+
         state.log_migration(repo_name, result.status, result.message, result.repo_id)
         if result.status == "completed":
             completed += 1
@@ -166,10 +194,11 @@ def cmd_migrate(_args: argparse.Namespace, config: AppConfig) -> int:
         time.sleep(1)
 
     LOGGER.info(
-        "Migrations finished: %d completed, %d unconfirmed, %d failed",
+        "Migrations finished: %d completed, %d unconfirmed, %d failed, %d skipped",
         completed,
         unconfirmed,
         failed,
+        skipped,
     )
     return 0 if failed == 0 else 1
 
@@ -300,6 +329,28 @@ def _verification_details(metadata: dict[str, Any]) -> str:
         f"releases:{metadata.get('releases', 0)} "
         f"wiki:{'yes' if metadata.get('wiki') else 'no'}"
     )
+
+
+def _latest_migration_statuses(state: MigrationState) -> dict[str, str]:
+    """Return each repository's latest migration-log status.
+
+    The log is append-only, so the latest entry for a repository is the last one in the file.
+    """
+    if not state.migration_log.exists():
+        return {}
+    events = state.load_json(state.migration_log)
+    if not isinstance(events, list):
+        raise ValueError(f"{state.migration_log} must contain a JSON array")
+
+    latest: dict[str, str] = {}
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        repo_name = event.get("repo")
+        status = event.get("status")
+        if isinstance(repo_name, str) and isinstance(status, str):
+            latest[repo_name] = status
+    return latest
 
 
 def _pending_migration_repos(

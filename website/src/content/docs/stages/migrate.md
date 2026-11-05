@@ -42,7 +42,8 @@ arrives are treated the same way.
 
 joflux waits a second between requests. Each one is logged as it goes, in the shape
 `[<n>/<total>] Migrating <repo>`, and a summary at the end has the shape
-`Migrations finished: <completed> completed, <unconfirmed> unconfirmed, <failed> failed`.
+`Migrations finished: <completed> completed, <unconfirmed> unconfirmed, <failed> failed,
+<skipped> skipped`.
 
 ## What it writes
 
@@ -56,6 +57,8 @@ Each request appends an entry to `migration-log.json` with its outcome:
   `Forgejo rejected or failed the import:` and the HTTP error. The error Forgejo sent back is
   logged too.
 
+A repository that `migrate` skips, because its migration already completed, gets no new entry, and
+neither does one whose earlier, unconfirmed import is still on the target.
 [Output files](/joflux/reference/output-files/) has every field.
 
 `migrate` exits 1 if any import failed, even when the rest completed. An unanswered import doesn't
@@ -73,5 +76,13 @@ A failed import isn't always cleaned up. Forgejo can leave the repository behind
 and it refuses a new migration with the same name until that repository is deleted, so delete it
 on the target before you migrate it again.
 
-Running `migrate` a second time sends a new request for every repository in the inventory,
-including ones that already arrived, so only re-run it with an inventory that lists what's left.
+Running `migrate` again skips every repository whose latest entry in `migration-log.json` is
+`completed`, logging `[<n>/<total>] Skipping <repo>: its migration already completed`, and sends a
+new request for the rest, so a re-run retries what didn't finish. A repository that `failed` may
+have left a repository behind on the target, which has to be deleted first, as above.
+
+For a repository logged as `initiated`, the earlier import's repository is still on the target, so
+Forgejo refuses the new request with a 409. `migrate` then leaves its entry as it is, warns that
+it's left for `monitor`, and counts it as unconfirmed, so `monitor` keeps checking it. If you've
+confirmed in the Forgejo web UI that the earlier import failed and deleted the repository on the
+target, the next run imports it again.

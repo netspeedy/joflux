@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 from typing import Any
 
 import pytest
@@ -283,3 +284,90 @@ def test_archive_carries_on_after_a_request_times_out(tmp_path, monkeypatch) -> 
         ("fine", "success"),
     ]
     assert events[0]["message"].startswith("no answer from https://api.github.com/")
+
+
+def test_migrate_skips_repositories_that_already_completed(tmp_path, monkeypatch, caplog) -> None:
+    """A re-run retries what didn't finish and leaves finished imports alone."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "done"}, {"name": "retry"}, {"name": "redone"}])
+    state.log_migration("done", "completed", "Forgejo finished the import", 7)
+    state.log_migration("retry", "failed", "Forgejo rejected or failed the import: HTTP 500")
+    state.log_migration("redone", "completed", "Forgejo finished the import", 8)
+    state.log_migration("redone", "failed", "Forgejo rejected or failed the import: HTTP 409")
+    requested: list[str] = []
+
+    class FakeForgejoClient:
+        """Forgejo test double that finishes every import it's asked for."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def organization_id(self, _org_name: str) -> int:
+            """Return a fixed organization id."""
+            return 3
+
+        def migrate_repository(self, **kwargs) -> MigrationResult:
+            """Record the request and report a finished import."""
+            requested.append(kwargs["repo_name"])
+            return MigrationResult("completed", 9, "Forgejo finished the import")
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+    caplog.set_level(logging.INFO, logger="joflux")
+
+    assert cli.cmd_migrate(argparse.Namespace(), _config(tmp_path)) == 0
+    assert requested == ["retry", "redone"]
+    new_events = state.load_json(state.migration_log)[4:]
+    assert [(event["repo"], event["status"]) for event in new_events] == [
+        ("retry", "completed"),
+        ("redone", "completed"),
+    ]
+    assert "[1/3] Skipping done: its migration already completed" in caplog.text
+    assert "Migrations finished: 2 completed, 0 unconfirmed, 0 failed, 1 skipped" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected_events", "expected_summary"),
+    [
+        (
+            MigrationResult("failed", None, "Forgejo rejected or failed the import: HTTP 409", 409),
+            [("pending", "initiated")],
+            "Migrations finished: 0 completed, 1 unconfirmed, 0 failed, 0 skipped",
+        ),
+        (
+            MigrationResult("completed", 9, "Forgejo finished the import"),
+            [("pending", "initiated"), ("pending", "completed")],
+            "Migrations finished: 1 completed, 0 unconfirmed, 0 failed, 0 skipped",
+        ),
+    ],
+)
+def test_migrate_leaves_an_unconfirmed_import_for_monitor(
+    tmp_path, monkeypatch, caplog, answer, expected_events, expected_summary
+) -> None:
+    """A 409 for an unconfirmed import keeps it initiated; a fresh import replaces it."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory([{"name": "pending"}])
+    state.log_migration("pending", "initiated", "no answer; Forgejo may still be importing it")
+
+    class FakeForgejoClient:
+        """Forgejo test double that gives one fixed answer."""
+
+        def __init__(self, *_args) -> None:
+            """Accept the production constructor shape."""
+
+        def organization_id(self, _org_name: str) -> int:
+            """Return a fixed organization id."""
+            return 3
+
+        def migrate_repository(self, **_kwargs) -> MigrationResult:
+            """Return the parametrized answer."""
+            return answer
+
+    monkeypatch.setattr(cli, "ForgejoClient", FakeForgejoClient)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+    caplog.set_level(logging.INFO, logger="joflux")
+
+    assert cli.cmd_migrate(argparse.Namespace(), _config(tmp_path)) == 0
+    events = state.load_json(state.migration_log)
+    assert [(event["repo"], event["status"]) for event in events] == expected_events
+    assert expected_summary in caplog.text
