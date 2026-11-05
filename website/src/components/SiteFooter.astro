@@ -1,39 +1,10 @@
 ---
-// The site footer: what the product is, three columns of links, and a bottom row with the copyright
-// and licence on the left and the licence file and the netspeedy organisation on the right.
+// The site footer: what the project is, three columns of links, and a bottom row with the
+// copyright and licence on the left and the licence file and the netspeedy organisation on the
+// right. The project's own copy comes from src/lib/site.ts.
 import { github, icons } from "../lib/icons";
-import { links, product } from "../lib/site";
+import { footerColumns, links, product } from "../lib/site";
 import Mark from "./Mark.astro";
-
-const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-const columns = [
-  {
-    title: "Docs",
-    items: [
-      { label: "Introduction", href: `${base}/introduction/` },
-      { label: "Quickstart", href: `${base}/quickstart/` },
-      { label: "The five stages", href: `${base}/stages/` },
-      { label: "CLI reference", href: `${base}/reference/cli/` },
-    ],
-  },
-  {
-    title: "Project",
-    items: [
-      { label: "GitHub", href: links.repo },
-      { label: "Releases", href: links.releases },
-      { label: "Issues", href: links.issues },
-      { label: "Example config", href: links.example },
-    ],
-  },
-  {
-    title: "Install",
-    items: [
-      { label: "Homebrew tap", href: links.homebrew },
-      { label: "From a checkout", href: `${base}/installation/#from-a-checkout` },
-      { label: "YAML configs", href: `${base}/installation/#yaml-configs` },
-    ],
-  },
-];
 ---
 
 <div class="ns-site-footer not-content">
@@ -43,7 +14,7 @@ const columns = [
       <p>{product.description}</p>
     </div>
     {
-      columns.map(({ title, items }) => (
+      footerColumns.map(({ title, items }) => (
         <nav aria-label={title}>
           <h2>{title}</h2>
           <ul>

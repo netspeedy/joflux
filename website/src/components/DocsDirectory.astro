@@ -2,6 +2,7 @@
 // Every sidebar group and its pages, as a card each, for the home page. It's built from the
 // sidebar, so it can't fall out of step with it.
 import { directory } from "../lib/sections";
+import { directorySubtitle } from "../lib/site";
 import SectionIcon from "./SectionIcon.astro";
 
 const groups = directory(Astro.locals.fullSidebar);
@@ -9,7 +10,7 @@ const groups = directory(Astro.locals.fullSidebar);
 
 <section class="ns-directory not-content" aria-labelledby="browse-the-docs">
   <h2 id="browse-the-docs">Browse the docs</h2>
-  <p class="ns-directory-sub">From a first export to every config key.</p>
+  <p class="ns-directory-sub">{directorySubtitle}</p>
   <div class="ns-cards">
     {
       groups.map(({ section, links }) => (

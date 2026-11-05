@@ -1,8 +1,6 @@
 /*
-  The joflux docs theme on top of Starlight, shared with the other netspeedy docs sites. Colours
-  come from the brand palette in scripts/readme/build_readme_hero.py: ink, cyan and deep cyan, with
-  amber for warnings. The mark's flow line keeps its gradient in both themes; --ns-mark colours
-  its loop, which is light on the dark theme and ink on the light one.
+  The docs theme on top of Starlight. Colours come from the brand palette in
+  scripts/readme/build_readme_hero.py: ink, cyan and deep cyan, with amber for warnings.
 
   Each sidebar group has its own colour (--ns-c1 to --ns-c4: cyan, indigo, amber, green), and a
   page takes its group's as --ns-page-*, which Head.astro sets. Light mode uses darker partners,

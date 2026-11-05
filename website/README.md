@@ -7,10 +7,12 @@ render on the site, so read the docs there rather than here. The files in the
 repository's [`docs/`](../docs/) folder are pointers to the site, apart from
 [`release.md`](../docs/release.md).
 
-The site follows s3ctl's docs site, the standard for every netspeedy project. The
-sidebar groups, their colours and icons, and which header tab shows which group are
-defined in `src/lib/sections.ts` and matched to the sidebar in `astro.config.mjs` by
-label. The product name, description and links are in `src/lib/site.ts`.
+The components and styles are the same in every netspeedy docs site and use the
+`ns-` prefix; s3ctl's site is the standard they follow. What's particular to joflux,
+such as its name, description, links and footer columns, is in `src/lib/site.ts`.
+The sidebar groups, their colours and icons, and which header tab shows which group
+are defined in `src/lib/sections.ts` and matched to the sidebar in
+`astro.config.mjs` by label.
 
 ## Working on it
 

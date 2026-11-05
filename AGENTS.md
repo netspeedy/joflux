@@ -31,11 +31,16 @@
   `website/src/lib/sections.ts`, matched to the sidebar in
   `website/astro.config.mjs` by label, so adding or renaming a group means
   updating `sections` and `tabs` there.
-- The site's components, styles and scripts follow s3ctl's docs site, which is
-  the standard for every netspeedy project. Carry design changes over from
-  there rather than diverging; what's joflux's own is the content,
-  `astro.config.mjs`, `src/lib/site.ts`, `src/lib/sections.ts`, the home page
-  samples in `HomeTop.astro`, `InstallTabs.astro` and the 404 page.
+- The site's components and styles are shared with the other netspeedy docs
+  sites, so their classes, custom properties and elements use the neutral
+  `ns-` prefix and they don't name joflux. s3ctl's site is the standard, so
+  carry design changes over from there rather than diverging. What's
+  particular to joflux (its name, description, links, footer columns and the
+  home page's directory line) lives in `website/src/lib/site.ts`, and the
+  pages written for joflux are `HomeTop.astro`, `InstallTabs.astro` and
+  `src/pages/404.astro`, alongside the content, `astro.config.mjs`,
+  `src/lib/sections.ts` and the mark's colour in `theme.css`. Keep it that
+  way, so a change to a shared file can be copied between the sites as it is.
 - The docs are versioned by release line. Only the latest line lives in
   `website/src/content/docs`; never copy pages into per-version folders. Keep
   page links root-relative (`/joflux/...`), so an archived build of a line can
