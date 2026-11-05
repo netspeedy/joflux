@@ -1,0 +1,20 @@
+---
+title: Move the whole org. Verify every repo.
+description: joflux moves a GitHub organization's repositories into Forgejo or Codeberg in five stages, and each stage leaves JSON you can inspect.
+template: splash
+tableOfContents: false
+editUrl: false
+prev: false
+next: false
+---
+
+import HomeTop from "../../components/HomeTop.astro";
+import DocsDirectory from "../../components/DocsDirectory.astro";
+
+<HomeTop>
+joflux moves a GitHub organization's repositories into Forgejo or Codeberg. Each of its five stages
+is its own command and writes its results as JSON, so you can check what happened before the next
+one, and `archive` only touches GitHub once you're happy.
+</HomeTop>
+
+<DocsDirectory />

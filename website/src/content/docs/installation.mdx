@@ -1,0 +1,64 @@
+---
+title: Installation
+description: Install joflux with Homebrew or from a checkout with pip, and add YAML support if you need it.
+---
+
+joflux needs Python 3.11 or newer. The default install has no dependencies beyond the standard
+library, because TOML and JSON configs are read with modules Python already ships.
+
+## Homebrew
+
+The easiest route on macOS and Linux:
+
+```bash
+brew tap netspeedy/joflux
+brew install joflux
+```
+
+:::note
+Recent Homebrew may refuse a new third-party tap until you trust it. If the install is refused,
+run `brew trust netspeedy/joflux` once, then `brew install joflux` again.
+:::
+
+The formula installs joflux on Homebrew's own Python, without any optional extras.
+
+## From a checkout
+
+Clone the repository and install it into a virtual environment with pip:
+
+```bash
+git clone https://github.com/netspeedy/joflux.git
+cd joflux
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install .
+```
+
+That puts a `joflux` command on the virtual environment's path. `python -m joflux` runs the same
+CLI.
+
+## YAML configs
+
+joflux reads a config ending in `.yaml` or `.yml` as YAML, which needs the optional `yaml` extra
+for PyYAML:
+
+```bash
+python -m pip install '.[yaml]'
+```
+
+The Homebrew formula doesn't include it, so with a Homebrew install use a TOML or JSON config.
+Without PyYAML a YAML config stops with
+`YAML config requires the optional PyYAML extra; use TOML or install joflux[yaml]`.
+
+## Upgrading
+
+With Homebrew:
+
+```bash
+brew upgrade joflux
+```
+
+From a checkout, pull the new version and run `python -m pip install .` again in the same virtual
+environment.
+
+Check which version you're running with `joflux --version`.

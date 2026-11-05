@@ -1,7 +1,7 @@
 PYTHON ?= python3
 WEBSITE_DIR ?= website
 
-.PHONY: install-dev fmt fmt-check lint test build smoke website-install website-dev website-build website-check website-capture readme-hero clean
+.PHONY: install-dev fmt fmt-check lint test build smoke website-install website-dev website-build website-check website-test website-capture readme-hero clean
 
 install-dev:
 	$(PYTHON) -m pip install --upgrade pip
@@ -45,6 +45,10 @@ website-build:
 website-check:
 	test -d $(WEBSITE_DIR)/node_modules || (printf 'missing website dependencies; run `make website-install`\n' >&2 && exit 1)
 	npm --prefix $(WEBSITE_DIR) run check
+
+website-test:
+	test -d $(WEBSITE_DIR)/node_modules || (printf 'missing website dependencies; run `make website-install`\n' >&2 && exit 1)
+	npm --prefix $(WEBSITE_DIR) run test
 
 website-capture:
 	test -d $(WEBSITE_DIR)/node_modules || (printf 'missing website dependencies; run `make website-install`\n' >&2 && exit 1)
