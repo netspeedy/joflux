@@ -8,6 +8,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+# Gateways answer 504, or 524 behind Cloudflare, when the server behind them didn't answer in time.
+GATEWAY_TIMEOUT_STATUSES = (504, 524)
+
 
 class APIError(RuntimeError):
     """Raised when an API request fails."""
@@ -16,6 +19,15 @@ class APIError(RuntimeError):
         super().__init__(message)
         self.status = status
         self.body = body
+
+
+class NoAnswerError(APIError):
+    """Raised when a request went out but no answer came back, so the server may still act on it.
+
+    That covers a response that timed out, a connection that dropped before the answer arrived,
+    and a gateway that gave up waiting on the server behind it. A connection that never opened is
+    a plain APIError, because the request never reached the server.
+    """
 
 
 def request_json(
@@ -52,8 +64,14 @@ def request_json(
         response_body = exc.read().decode("utf-8", errors="replace")
         if exc.code in allow_status:
             return {"_status": exc.code, "_body": response_body}
-        raise APIError(f"HTTP {exc.code} from {request_url}", exc.code, response_body) from exc
+        error = NoAnswerError if exc.code in GATEWAY_TIMEOUT_STATUSES else APIError
+        raise error(f"HTTP {exc.code} from {request_url}", exc.code, response_body) from exc
     except URLError as exc:
+        # urlopen wraps anything raised while sending the request, connecting included, in
+        # URLError, so the server never saw it.
         raise APIError(f"failed to connect to {request_url}: {exc.reason}") from exc
+    except (TimeoutError, ConnectionError) as exc:
+        # These come from waiting for or reading the response, after the request went out.
+        raise NoAnswerError(f"no answer from {request_url}: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise APIError(f"invalid JSON response from {request_url}: {exc}") from exc
