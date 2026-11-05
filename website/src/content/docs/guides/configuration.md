@@ -39,12 +39,14 @@ poll_interval = 30
 max_wait_time = 3600
 log_level = "INFO"
 output_dir = "migration_output"
+metadata = true
 ```
 
 `[github]` names the organization you're moving from, and `[forgejo]` the instance and organization
-you're moving to. `[migration]` controls how `monitor` polls, how much joflux logs and where it
-keeps its state. The organizations and the Forgejo URL are required; everything in `[migration]`
-has a default. [Config keys](/joflux/reference/configuration/) lists every key.
+you're moving to. `[migration]` controls what `migrate` asks Forgejo to import, how long joflux
+waits and how `monitor` polls, how much it logs and where it keeps its state. The organizations and
+the Forgejo URL are required; everything in `[migration]` has a default.
+[Config keys](/joflux/reference/configuration/) lists every key.
 
 ## Tokens
 
@@ -69,11 +71,25 @@ joflux talks to `https://api.github.com` by default. For GitHub Enterprise Serve
 under `[github]` to your server's API address. `export` then lists the organization from your
 server, and `migrate` hands Forgejo the clone URLs your server put in the inventory.
 
+## Metadata
+
+`metadata` is `true` unless the config says otherwise, and `migrate` then asks Forgejo to import
+each repository's wiki, issues, pull requests (with their comments and reviews), labels, milestones
+and releases from GitHub along with the git data. Forgejo reads them through the GitHub API with
+the GitHub token. Set `metadata = false` to import only the git data; `verify` then counts zero
+issues, pull requests, labels and releases for every repository, because none were imported. It
+has to be a real `true` or `false`, not a quoted string.
+
+Git LFS objects aren't requested either way, so a repository that uses LFS arrives with its
+pointer files but not the files they point to.
+
 ## Polling and logging
 
 `poll_interval` is how many seconds `monitor` waits between passes, and `max_wait_time` is how many
-seconds it keeps going before giving up on repositories that haven't arrived. Both must be positive
-whole numbers. `log_level` is one of `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`, in any case.
+seconds it keeps going before giving up on repositories that haven't arrived. `max_wait_time` is
+also how long `migrate` waits for Forgejo to answer each migration request, because Forgejo only
+answers once the import is done. Both must be positive whole numbers. `log_level` is one of `DEBUG`,
+`INFO`, `WARNING`, `ERROR` or `CRITICAL`, in any case.
 
 ## The output directory
 

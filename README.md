@@ -94,10 +94,13 @@ joflux --config joflux.toml archive
 | `archive` | Archives the GitHub originals | `archive-log.json` |
 
 `migrate` copies each repository as a normal repository rather than a mirror and
-keeps it private if it was private on GitHub. `monitor` only checks repositories
-whose migration was started and hasn't finished yet, so you can stop it and run it
-again; `--interval` overrides the poll interval for that run. `verify` exits with
-code 1 and names the missing repositories if any of them aren't on the target.
+keeps it private if it was private on GitHub. Forgejo brings the wiki, issues, pull
+requests, labels, milestones and releases across with the git data; set
+`metadata = false` under `[migration]` if you only want the git data. `monitor`
+only checks repositories whose migration was started and hasn't finished yet, so
+you can stop it and run it again; `--interval` overrides the poll interval for that
+run. `verify` exits with code 1 and names the missing repositories if any of them
+aren't on the target.
 
 `archive` is deliberately separate from the rest. It asks you to type `yes` before
 it changes anything, unless you pass `--yes`, and it archives the originals rather
@@ -129,16 +132,19 @@ poll_interval = 30
 max_wait_time = 3600
 log_level = "INFO"
 output_dir = "migration_output"
+metadata = true
 ```
 
 The GitHub token needs to list and clone the organization's repositories,
-including any private ones you're moving, and to update repository settings if
-you'll run `archive`. The Forgejo or Codeberg token needs to create repositories in
-the target organization, which must exist before you run `migrate`. Keep both in
-the environment as `JOFLUX_GITHUB_TOKEN` and `JOFLUX_FORGEJO_TOKEN` rather than in
-the file; for Codeberg, `JOFLUX_CODEBERG_TOKEN` works too. A token in the config
-file takes precedence when both are set. For GitHub Enterprise Server, set
-`github.api_url` to your server's API address.
+including any private ones you're moving, and to read their issues and pull
+requests, because Forgejo fetches those with it. It also needs to update repository
+settings if you'll run `archive`. The Forgejo or Codeberg token needs to create
+repositories in the target organization, which must exist before you run
+`migrate`. Keep both in the environment as `JOFLUX_GITHUB_TOKEN` and
+`JOFLUX_FORGEJO_TOKEN` rather than in the file; for Codeberg,
+`JOFLUX_CODEBERG_TOKEN` works too. A token in the config file takes precedence
+when both are set. For GitHub Enterprise Server, set `github.api_url` to your
+server's API address.
 
 Flat keys from the older tool, such as `github_org`, `codeberg_url`,
 `codeberg_org` and `codeberg_token`, still work, so an earlier config can be moved
@@ -150,8 +156,12 @@ in the docs lists every key.
 Forgejo instances differ in what they allow. Some restrict private imports,
 metadata import, how many repositories an organization can hold, or how many
 migrations run at once, so check the target's limits before starting on a large
-organization. Keep `migration_output/` once the run is over: it's the audit trail,
-and it's what `monitor`, `verify` and `archive` read when you re-run them.
+organization. Importing issues and pull requests takes far longer than copying git
+data and spends the GitHub token's API quota; Forgejo pauses until the quota resets
+when it runs out, and `migrate` waits up to `max_wait_time` seconds for each
+repository. If the target won't take metadata imports, set `metadata = false`.
+Keep `migration_output/` once the run is over: it's the audit trail, and it's what
+`monitor`, `verify` and `archive` read when you re-run them.
 
 ## Development
 

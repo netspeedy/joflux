@@ -28,6 +28,7 @@ class AppConfig:
     max_wait_time: int = 3600
     log_level: str = "INFO"
     output_dir: str = "migration_output"
+    migrate_metadata: bool = True
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> "AppConfig":
@@ -66,6 +67,12 @@ class AppConfig:
                 raise ConfigError(f"config key must be a positive integer: {keys[0]}")
             return parsed
 
+        def boolean(default: bool, *keys: str) -> bool:
+            value = optional(default, *keys)
+            if not isinstance(value, bool):
+                raise ConfigError(f"config key must be true or false: {keys[0]}")
+            return value
+
         def log_level() -> str:
             level = str(optional("INFO", "log_level", "migration.log_level")).upper()
             valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -99,6 +106,7 @@ class AppConfig:
             max_wait_time=positive_int(3600, "max_wait_time", "migration.max_wait_time"),
             log_level=log_level(),
             output_dir=str(optional("migration_output", "output_dir", "migration.output_dir")),
+            migrate_metadata=boolean(True, "metadata", "migration.metadata"),
         )
 
 

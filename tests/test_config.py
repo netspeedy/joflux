@@ -37,6 +37,7 @@ output_dir = "state"
     assert config.poll_interval == 5
     assert config.max_wait_time == 60
     assert config.output_dir == "state"
+    assert config.migrate_metadata is True
 
 
 def test_accepts_legacy_codeberg_keys(tmp_path: Path) -> None:
@@ -157,4 +158,51 @@ log_level = "VERBOSE"
     )
 
     with pytest.raises(ConfigError, match="log_level"):
+        load_config(config_path)
+
+
+def test_metadata_migration_can_be_switched_off(tmp_path: Path) -> None:
+    """migration.metadata = false asks Forgejo for the git data alone."""
+    config_path = tmp_path / "git-only.toml"
+    config_path.write_text(
+        """
+[github]
+org = "source"
+token = "ghp_token"
+
+[forgejo]
+url = "https://forge.example"
+org = "target"
+token = "forgejo_token"
+
+[migration]
+metadata = false
+""".strip(),
+        encoding="utf-8",
+    )
+
+    assert load_config(config_path).migrate_metadata is False
+
+
+def test_metadata_switch_must_be_boolean(tmp_path: Path) -> None:
+    """A quoted "false" would be truthy, so only real booleans are accepted."""
+    config_path = tmp_path / "bad-metadata.toml"
+    config_path.write_text(
+        """
+[github]
+org = "source"
+token = "ghp_token"
+
+[forgejo]
+url = "https://forge.example"
+org = "target"
+token = "forgejo_token"
+
+[migration]
+metadata = "false"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="metadata"):
         load_config(config_path)
