@@ -295,12 +295,22 @@ def cmd_archive(args: argparse.Namespace, config: AppConfig) -> int:
     if not state.verify_file.exists():
         raise FileNotFoundError("verification report not found; run verify first")
     verification = _latest_statuses(state.verify_file)
+    archived_before = _latest_statuses(state.archive_log) if state.archive_log.exists() else {}
 
     to_archive: list[str] = []
     not_verified: list[str] = []
+    already_archived = 0
     for repo in repositories:
         repo_name = str(repo["name"])
-        if verification.get(repo_name) == "verified":
+        if repo.get("archived") is True:
+            LOGGER.info(
+                "Skipping %s: it was already archived on GitHub when it was exported", repo_name
+            )
+            already_archived += 1
+        elif archived_before.get(repo_name) == "success":
+            LOGGER.info("Skipping %s: an earlier archive run archived it", repo_name)
+            already_archived += 1
+        elif verification.get(repo_name) == "verified":
             to_archive.append(repo_name)
         else:
             not_verified.append(repo_name)
@@ -335,9 +345,10 @@ def cmd_archive(args: argparse.Namespace, config: AppConfig) -> int:
         time.sleep(1)
 
     LOGGER.info(
-        "Archive complete: %d archived, %d failed, %d not verified",
+        "Archive complete: %d archived, %d failed, %d already archived, %d not verified",
         successful,
         failed,
+        already_archived,
         len(not_verified),
     )
     return 0 if failed == 0 and not not_verified else 1

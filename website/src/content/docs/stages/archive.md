@@ -47,11 +47,26 @@ A `verified` entry says the repository was on the target with the counts in its 
 `verification-report.json` and compare those counts with GitHub before you confirm.
 :::
 
+## Already archived
+
+`archive` skips a repository that's already archived, whatever `verify` says about it: one the
+inventory says was archived on GitHub when you exported, and one whose latest entry in
+`archive-log.json` is `success`. It leaves it out of the prompt's count, counts it in the summary,
+and logs one of:
+
+```text
+Skipping <repo>: it was already archived on GitHub when it was exported
+Skipping <repo>: an earlier archive run archived it
+```
+
+So running `archive` again only tries the ones that failed or weren't verified last time.
+
 ## What it does
 
 For each repository it asks GitHub to mark it archived, waiting a second between requests. Each one
 is logged in the shape `[<n>/<total>] Archiving <repo>`, and the summary at the end has the shape
-`Archive complete: <archived> archived, <failed> failed, <not verified> not verified`.
+`Archive complete: <archived> archived, <failed> failed, <already> already archived,
+<not verified> not verified`.
 
 The GitHub token needs to be able to change repository settings for this; the earlier stages only
 need it to read and clone.
@@ -59,9 +74,10 @@ need it to read and clone.
 ## What it writes
 
 Each repository appends an entry to `archive-log.json`, recorded as `success` with
-`Repository archived`, or as `failed` with the error GitHub returned. A repository it doesn't try to
-archive gets no entry. `archive` exits 1 if any failed, or if any were left because they weren't
-verified. [Output files](/joflux/reference/output-files/) has the fields.
+`Repository archived`, or as `failed` with the error GitHub returned. A repository it doesn't try
+to archive, because it wasn't verified or is already archived, gets no entry. `archive` exits 1 if
+any failed, or if any were left because they weren't verified.
+[Output files](/joflux/reference/output-files/) has the fields.
 
 A request that times out or loses its connection is recorded as `failed` too, with that error, and
 `archive` carries on with the next repository. GitHub may have archived the repository anyway, so

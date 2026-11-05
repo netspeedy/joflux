@@ -13,7 +13,7 @@ sorted keys.
 | `migration-log.json` | `migrate` | `monitor` |
 | `migration-status.json` | `monitor` | `monitor` |
 | `verification-report.json` | `verify` | `archive` |
-| `archive-log.json` | `archive` | |
+| `archive-log.json` | `archive` | `archive` |
 
 `export` replaces the inventory each time it runs. The other four files are lists of events: each
 run appends to them and keeps what's already there.
@@ -32,7 +32,7 @@ entry:
 | `clone_url` | Where Forgejo clones it from |
 | `description` | The target repository's description |
 | `private` | Whether the target repository is private |
-| `fork`, `archived` | The filters and the export summary |
+| `fork`, `archived` | The filters and the export summary, and `archive` skips a repository that was already archived |
 
 ## migration-log.json
 
@@ -74,7 +74,7 @@ One entry per repository per `verify` run.
 ## archive-log.json
 
 One entry per repository that an `archive` run tries to archive. A repository it leaves alone,
-because `verify` hasn't recorded it as verified, gets none.
+because `verify` hasn't recorded it as verified or it's already archived, gets none.
 
 | Field | Value |
 | --- | --- |

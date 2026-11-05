@@ -426,7 +426,9 @@ def test_archive_only_archives_repositories_verify_recorded_as_verified(
         "Not archiving 2 repositories that verify hasn't recorded as verified: gone, unchecked"
         in caplog.text
     )
-    assert "Archive complete: 2 archived, 0 failed, 2 not verified" in caplog.text
+    assert (
+        "Archive complete: 2 archived, 0 failed, 0 already archived, 2 not verified" in caplog.text
+    )
 
 
 def test_archive_stops_without_a_verification_report(tmp_path, monkeypatch, caplog) -> None:
@@ -478,3 +480,44 @@ def test_archive_prompt_names_the_enterprise_server(tmp_path, monkeypatch) -> No
     assert cli.cmd_archive(argparse.Namespace(yes=False), config) == 0
     assert prompts == ["Archive 1 repositories in ghe.example.com/source? Type yes: "]
     assert not _FakeGitHubClient.archived
+
+
+def test_archive_skips_repositories_that_are_already_archived(
+    tmp_path, monkeypatch, caplog
+) -> None:
+    """A re-run doesn't touch what an earlier run archived, or what GitHub had archived already."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory(
+        [
+            {"name": "fresh", "archived": False},
+            {"name": "was-archived", "archived": True},
+            {"name": "done-before", "archived": False},
+            {"name": "failed-before", "archived": False},
+        ]
+    )
+    for name in ("fresh", "was-archived", "done-before", "failed-before"):
+        state.log_verification(name, "verified", "size:1")
+    state.log_archive("done-before", "success", "Repository archived")
+    state.log_archive("failed-before", "failed", "HTTP 502 from https://api.github.com/")
+    prompts: list[str] = []
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return "yes"
+
+    monkeypatch.setattr(cli, "GitHubClient", _FakeGitHubClient)
+    monkeypatch.setattr(_FakeGitHubClient, "archived", [])
+    monkeypatch.setattr("builtins.input", fake_input)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+    caplog.set_level(logging.INFO, logger="joflux")
+
+    assert cli.cmd_archive(argparse.Namespace(yes=False), _config(tmp_path)) == 0
+    assert prompts == ["Archive 2 repositories in github.com/source? Type yes: "]
+    assert _FakeGitHubClient.archived == ["fresh", "failed-before"]
+    assert "Skipping was-archived: it was already archived on GitHub when it was exported" in (
+        caplog.text
+    )
+    assert "Skipping done-before: an earlier archive run archived it" in caplog.text
+    assert "Archive complete: 2 archived, 0 failed, 2 already archived, 0 not verified" in (
+        caplog.text
+    )

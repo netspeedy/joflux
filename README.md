@@ -111,9 +111,10 @@ missing repositories if any of them aren't on the target.
 `archive` is deliberately separate from the rest. It only archives repositories
 whose latest entry in `verification-report.json` is `verified`, and won't start
 without that report. It asks you to type `yes` before it changes anything, unless
-you pass `--yes`, and it archives the originals rather than deleting them. Each
-stage has its own page in the [docs](https://netspeedy.github.io/joflux/stages/),
-covering what it does, what it writes and what to check before the next stage.
+you pass `--yes`, archives the originals rather than deleting them, and skips any
+that are already archived. Each stage has its own page in the
+[docs](https://netspeedy.github.io/joflux/stages/), covering what it does, what it
+writes and what to check before the next stage.
 
 Every command exits 0 on success, 1 when a stage partly failed or an API call
 errored, and 2 for a config problem or a missing state file, so a script can stop
