@@ -45,5 +45,5 @@ adding to it.
 ## Before you migrate
 
 Read the inventory. It's the list `migrate`, `verify` and `archive` all work from, so anything in
-it will be moved and later archived. If it holds forks or archived repositories that shouldn't
-move, export again with the filters above.
+it will be moved, and archived on GitHub once `verify` has recorded it as verified. If it holds
+forks or archived repositories that shouldn't move, export again with the filters above.

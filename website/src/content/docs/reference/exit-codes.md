@@ -22,10 +22,10 @@ done
 
 ## 0
 
-The stage did everything it set out to. Two cases exit 0 without doing anything: `archive` when you
-answer anything other than `yes` at its prompt, and `monitor` when there are no unconfirmed
-migrations to check, which is the usual case because `migrate` waits for Forgejo to finish each
-import.
+The stage did everything it set out to. Three cases exit 0 without doing anything: `archive` when
+you answer anything other than `yes` at its prompt or when every repository was already archived,
+and `monitor` when there are no unconfirmed migrations to check, which is the usual case because
+`migrate` waits for Forgejo to finish each import.
 
 ## 1
 
