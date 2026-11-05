@@ -7,6 +7,7 @@ import logging
 import sys
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from . import package_version
@@ -288,12 +289,31 @@ def cmd_verify(_args: argparse.Namespace, config: AppConfig) -> int:
 
 
 def cmd_archive(args: argparse.Namespace, config: AppConfig) -> int:
-    """Archive original GitHub repositories after verification."""
+    """Archive the GitHub originals that verify recorded as verified."""
     state = MigrationState(config.output_dir)
     repositories = state.load_inventory()
+    if not state.verify_file.exists():
+        raise FileNotFoundError("verification report not found; run verify first")
+    verification = _latest_statuses(state.verify_file)
 
-    if not args.yes:
-        count = len(repositories)
+    to_archive: list[str] = []
+    not_verified: list[str] = []
+    for repo in repositories:
+        repo_name = str(repo["name"])
+        if verification.get(repo_name) == "verified":
+            to_archive.append(repo_name)
+        else:
+            not_verified.append(repo_name)
+
+    if not_verified:
+        LOGGER.warning(
+            "Not archiving %d repositories that verify hasn't recorded as verified: %s",
+            len(not_verified),
+            ", ".join(not_verified),
+        )
+
+    if to_archive and not args.yes:
+        count = len(to_archive)
         prompt = f"Archive {count} repositories in github.com/{config.github_org}? Type yes: "
         if input(prompt).strip().lower() != "yes":
             LOGGER.warning("Archive cancelled")
@@ -302,9 +322,8 @@ def cmd_archive(args: argparse.Namespace, config: AppConfig) -> int:
     github = GitHubClient(config.github_org, config.github_token, config.github_api_url, LOGGER)
     successful = 0
     failed = 0
-    for index, repo in enumerate(repositories, 1):
-        repo_name = str(repo["name"])
-        LOGGER.info("[%d/%d] Archiving %s", index, len(repositories), repo_name)
+    for index, repo_name in enumerate(to_archive, 1):
+        LOGGER.info("[%d/%d] Archiving %s", index, len(to_archive), repo_name)
         try:
             github.archive_repository(repo_name)
         except APIError as exc:
@@ -315,8 +334,13 @@ def cmd_archive(args: argparse.Namespace, config: AppConfig) -> int:
             successful += 1
         time.sleep(1)
 
-    LOGGER.info("Archive complete: %d archived, %d failed", successful, failed)
-    return 0 if failed == 0 else 1
+    LOGGER.info(
+        "Archive complete: %d archived, %d failed, %d not verified",
+        successful,
+        failed,
+        len(not_verified),
+    )
+    return 0 if failed == 0 and not not_verified else 1
 
 
 def _verification_details(metadata: dict[str, Any]) -> str:
@@ -330,16 +354,11 @@ def _verification_details(metadata: dict[str, Any]) -> str:
     )
 
 
-def _latest_migration_statuses(state: MigrationState) -> dict[str, str]:
-    """Return each repository's latest migration-log status.
-
-    The log is append-only, so the latest entry for a repository is the last one in the file.
-    """
-    if not state.migration_log.exists():
-        return {}
-    events = state.load_json(state.migration_log)
+def _latest_statuses(path: Path) -> dict[str, str]:
+    """Return each repository's status from its last entry in an append-only JSON log."""
+    events = MigrationState.load_json(path)
     if not isinstance(events, list):
-        raise ValueError(f"{state.migration_log} must contain a JSON array")
+        raise ValueError(f"{path} must contain a JSON array")
 
     latest: dict[str, str] = {}
     for event in events:
@@ -350,6 +369,16 @@ def _latest_migration_statuses(state: MigrationState) -> dict[str, str]:
         if isinstance(repo_name, str) and isinstance(status, str):
             latest[repo_name] = status
     return latest
+
+
+def _latest_migration_statuses(state: MigrationState) -> dict[str, str]:
+    """Return each repository's latest migration-log status.
+
+    The log is append-only, so the latest entry for a repository is the last one in the file.
+    """
+    if not state.migration_log.exists():
+        return {}
+    return _latest_statuses(state.migration_log)
 
 
 def _pending_migration_repos(

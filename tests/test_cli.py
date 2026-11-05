@@ -269,6 +269,8 @@ def test_archive_carries_on_after_a_request_times_out(tmp_path, monkeypatch) -> 
     """A timed-out archive request is logged as failed and the next repository still runs."""
     state = MigrationState(str(tmp_path))
     state.save_inventory([{"name": "slow"}, {"name": "fine"}])
+    state.log_verification("slow", "verified", "size:1")
+    state.log_verification("fine", "verified", "size:1")
 
     def fake_urlopen(request: Any, timeout: int = 30) -> Any:
         del timeout
@@ -373,3 +375,85 @@ def test_migrate_leaves_an_unconfirmed_import_for_monitor(
     events = state.load_json(state.migration_log)
     assert [(event["repo"], event["status"]) for event in events] == expected_events
     assert expected_summary in caplog.text
+
+
+class _FakeGitHubClient:
+    """GitHub test double that records which repositories it was asked to archive."""
+
+    archived: list[str] = []
+
+    def __init__(self, *_args) -> None:
+        """Accept the production constructor shape."""
+
+    def archive_repository(self, repo_name: str) -> bool:
+        """Record the request."""
+        self.archived.append(repo_name)
+        return True
+
+
+def test_archive_only_archives_repositories_verify_recorded_as_verified(
+    tmp_path, monkeypatch, caplog
+) -> None:
+    """Originals that never arrived, or were never checked, stay as they are on GitHub."""
+    state = MigrationState(str(tmp_path))
+    state.save_inventory(
+        [{"name": "ok"}, {"name": "gone"}, {"name": "unchecked"}, {"name": "arrived-later"}]
+    )
+    state.log_verification("ok", "verified", "size:1")
+    state.log_verification("gone", "missing", "HTTP 404")
+    state.log_verification("arrived-later", "missing", "HTTP 404")
+    state.log_verification("arrived-later", "verified", "size:1")
+    prompts: list[str] = []
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return "yes"
+
+    monkeypatch.setattr(cli, "GitHubClient", _FakeGitHubClient)
+    monkeypatch.setattr(_FakeGitHubClient, "archived", [])
+    monkeypatch.setattr("builtins.input", fake_input)
+    monkeypatch.setattr(cli.time, "sleep", lambda _seconds: None)
+    caplog.set_level(logging.INFO, logger="joflux")
+
+    assert cli.cmd_archive(argparse.Namespace(yes=False), _config(tmp_path)) == 1
+    assert prompts == ["Archive 2 repositories in github.com/source? Type yes: "]
+    assert _FakeGitHubClient.archived == ["ok", "arrived-later"]
+    assert [event["repo"] for event in state.load_json(state.archive_log)] == [
+        "ok",
+        "arrived-later",
+    ]
+    assert (
+        "Not archiving 2 repositories that verify hasn't recorded as verified: gone, unchecked"
+        in caplog.text
+    )
+    assert "Archive complete: 2 archived, 0 failed, 2 not verified" in caplog.text
+
+
+def test_archive_stops_without_a_verification_report(tmp_path, monkeypatch, caplog) -> None:
+    """Archiving with nothing verified would archive blind, so it doesn't start."""
+    MigrationState(str(tmp_path)).save_inventory([{"name": "example"}])
+    config_path = tmp_path / "joflux.toml"
+    config_path.write_text(
+        f"""
+[github]
+org = "source"
+token = "ghp_token"
+
+[forgejo]
+url = "https://forge.example"
+org = "target"
+token = "forgejo_token"
+
+[migration]
+output_dir = "{tmp_path}"
+""".strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "GitHubClient", _FakeGitHubClient)
+    monkeypatch.setattr(_FakeGitHubClient, "archived", [])
+    # configure_logging would point the logger at stdout and stop it reaching caplog.
+    monkeypatch.setattr(cli, "configure_logging", lambda _level: None)
+
+    assert main(["--config", str(config_path), "archive", "--yes"]) == 2
+    assert not _FakeGitHubClient.archived
+    assert "verification report not found; run verify first" in caplog.text

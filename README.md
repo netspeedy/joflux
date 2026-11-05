@@ -91,7 +91,7 @@ joflux --config joflux.toml archive
 | `migrate` | Resolves the target organization and runs one Forgejo migration per repository, waiting for each to finish | `migration-log.json` |
 | `monitor` | Rechecks any migration Forgejo didn't answer for while `migrate` was waiting | `migration-status.json` |
 | `verify` | Checks each target repository and records its size, its issue, pull request, label and release counts, and whether it has a wiki | `verification-report.json` |
-| `archive` | Archives the GitHub originals | `archive-log.json` |
+| `archive` | Archives the GitHub originals that `verify` recorded as verified | `archive-log.json` |
 
 `migrate` copies each repository as a normal repository rather than a mirror and
 keeps it private if it was private on GitHub. Forgejo brings the wiki, issues, pull
@@ -108,11 +108,12 @@ web UI before you go on. You can stop `monitor` and run it again, and `--interva
 overrides the poll interval for that run. `verify` exits with code 1 and names the
 missing repositories if any of them aren't on the target.
 
-`archive` is deliberately separate from the rest. It asks you to type `yes` before
-it changes anything, unless you pass `--yes`, and it archives the originals rather
-than deleting them. Each stage has its own page in the
-[docs](https://netspeedy.github.io/joflux/stages/), covering what it does, what it
-writes and what to check before the next stage.
+`archive` is deliberately separate from the rest. It only archives repositories
+whose latest entry in `verification-report.json` is `verified`, and won't start
+without that report. It asks you to type `yes` before it changes anything, unless
+you pass `--yes`, and it archives the originals rather than deleting them. Each
+stage has its own page in the [docs](https://netspeedy.github.io/joflux/stages/),
+covering what it does, what it writes and what to check before the next stage.
 
 Every command exits 0 on success, 1 when a stage partly failed or an API call
 errored, and 2 for a config problem or a missing state file, so a script can stop
