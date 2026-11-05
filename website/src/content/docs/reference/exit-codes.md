@@ -39,10 +39,10 @@ A stage exits 1 when some of its work failed:
 - `archive` failed to archive any repository, or left any unarchived because `verify` hasn't
   recorded it as verified
 
-A request that times out or loses its connection counts as a failed API call for the repository
-it was about: the stage records it and carries on, like any other failed request. In `monitor` it
-leaves the repository pending for the next pass instead, and in `migrate` it means the import went
-unanswered, which doesn't count as a failure.
+A request that times out, loses its connection or gets an answer that's cut off partway counts as a
+failed API call for the repository it was about: the stage records it and carries on, like any other
+failed request. In `monitor` it leaves the repository pending for the next pass instead, and in
+`migrate` it means the import went unanswered, which doesn't count as a failure.
 
 It also exits 1 when an error stops a stage part-way: an API call that fails outside those cases,
 such as GitHub refusing the organization listing in `export`, a network error, a file that can't be

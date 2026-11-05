@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import ssl
+from http.client import IncompleteRead
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -22,11 +24,13 @@ class APIError(RuntimeError):
 
 
 class NoAnswerError(APIError):
-    """Raised when a request went out but no answer came back, so the server may still act on it.
+    """Raised when a request went out but no intact answer came back.
 
     That covers a response that timed out, a connection that dropped before the answer arrived,
-    and a gateway that gave up waiting on the server behind it. A connection that never opened is
-    a plain APIError, because the request never reached the server.
+    an answer cut off partway or broken by a TLS error while it was being read, and a gateway that
+    gave up waiting on the server behind it. The server may still act on the request, or may
+    already have. A connection that never opened is a plain APIError, because the request never
+    reached the server.
     """
 
 
@@ -61,7 +65,7 @@ def request_json(
                 return None
             return json.loads(response_body)
     except HTTPError as exc:
-        response_body = exc.read().decode("utf-8", errors="replace")
+        response_body = _error_body(exc)
         if exc.code in allow_status:
             return {"_status": exc.code, "_body": response_body}
         error = NoAnswerError if exc.code in GATEWAY_TIMEOUT_STATUSES else APIError
@@ -73,5 +77,24 @@ def request_json(
     except (TimeoutError, ConnectionError) as exc:
         # These come from waiting for or reading the response, after the request went out.
         raise NoAnswerError(f"no answer from {request_url}: {exc}") from exc
+    except (IncompleteRead, ssl.SSLError) as exc:
+        # The answer started to arrive but not intact. A TLS handshake error can't land here: the
+        # handshake runs while the request is sent, so urlopen wraps it in URLError above.
+        raise NoAnswerError(f"incomplete answer from {request_url}: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise APIError(f"invalid JSON response from {request_url}: {exc}") from exc
+
+
+def _error_body(exc: HTTPError) -> str:
+    """Return an error answer's body, or as much of it as arrived.
+
+    The status line already came through intact, so a body that's cut off or lost doesn't change
+    what the answer was.
+    """
+    try:
+        raw = exc.read()
+    except IncompleteRead as cut:
+        raw = cut.partial
+    except (TimeoutError, ConnectionError, ssl.SSLError):
+        raw = b""
+    return raw.decode("utf-8", errors="replace")
