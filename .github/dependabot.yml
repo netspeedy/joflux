@@ -22,13 +22,15 @@ updates:
       - dependencies
       - python
 
+  # The docs site doesn't ship with joflux, so its updates use chore, which doesn't cut a release.
+  # deps would, and every site dependency bump would publish a new release and Homebrew formula.
   - package-ecosystem: npm
     directory: /website
     open-pull-requests-limit: 10
     schedule:
       interval: daily
     commit-message:
-      prefix: deps
+      prefix: chore
     labels:
       - dependencies
       - website
