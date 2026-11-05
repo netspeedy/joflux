@@ -157,10 +157,9 @@ def _migrate(client: ForgejoClient, **kwargs: Any) -> forgejo.MigrationResult:
     return client.migrate_repository(
         clone_url="https://github.com/source/example.git",
         repo_name="example",
-        org_id=3,
+        owner="target",
         private=True,
         auth_token="ghp_token",
-        auth_username="source",
         description="Example",
         **kwargs,
     )
@@ -180,6 +179,19 @@ def test_migrate_repository_asks_forgejo_for_github_metadata(monkeypatch) -> Non
     assert payload["mirror"] is False
     for switch in METADATA_SWITCHES:
         assert payload[switch] is True, switch
+
+
+def test_migrate_repository_names_the_owner_the_way_forgejo_reads_it(monkeypatch) -> None:
+    """MigrateRepoOptions takes repo_owner by name; uid is deprecated, repo_owner_id unknown."""
+    captured = _capture_migrate_request(monkeypatch)
+    client = ForgejoClient("https://forge.example", "token", logging.getLogger("test"))
+
+    _migrate(client)
+
+    payload = captured["payload"]
+    assert payload["repo_owner"] == "target"
+    for unused in ("uid", "repo_owner_id", "auth_username"):
+        assert unused not in payload, unused
 
 
 def test_migrate_repository_can_copy_git_data_only(monkeypatch) -> None:
@@ -265,10 +277,9 @@ def _start_migration(client: ForgejoClient, timeout: int = 30) -> forgejo.Migrat
     return client.migrate_repository(
         clone_url="https://github.com/source/example.git",
         repo_name="example",
-        org_id=3,
+        owner="target",
         private=False,
         auth_token="ghp_token",
-        auth_username="source",
         description="Example",
         timeout=timeout,
     )
